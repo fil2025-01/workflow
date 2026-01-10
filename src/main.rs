@@ -32,6 +32,7 @@ fn create_app() -> Router {
         .route("/", get(handler))
         .route("/upload", post(upload_handler))
         .route("/style.css", get(style_handler))
+        .route("/script.js", get(script_handler))
 }
 
 // Handler that returns HTML
@@ -42,6 +43,11 @@ async fn handler() -> Html<&'static str> {
 // Handler that returns CSS
 async fn style_handler() -> impl IntoResponse {
     ([("content-type", "text/css")], include_str!("../style.css"))
+}
+
+// Handler that returns JS
+async fn script_handler() -> impl IntoResponse {
+    ([("content-type", "text/javascript")], include_str!("../script.js"))
 }
 
 // Handler for uploading audio
