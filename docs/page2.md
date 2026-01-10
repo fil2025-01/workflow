@@ -1,4 +1,4 @@
-[Prev](./page1.md) | [Next](./page3.md))
+[Prev](./page1.md) | [Next](./page3.md)
 
 # Audio Recording Implementation
 
@@ -55,4 +55,4 @@ cargo watch -x run
 This will automatically recompile and restart your server whenever a file change is detected.
 
 
-[Prev](./page1.md) | [Next](./page3.md))
+[Prev](./page1.md) | [Next](./page3.md)
