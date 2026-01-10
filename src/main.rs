@@ -111,12 +111,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_upload_no_file() {
+    async fn test_upload_success() {
         let app = create_app();
-
-        // Testing upload without a valid multipart body should probably result in a 400 or just processed as empty
-        // Since we are checking for "file" field, it should just return OK but save nothing if body is empty or malformed
-        // However, Multipart extractor expects a valid Content-Type header.
 
         let response = app
             .oneshot(
@@ -134,8 +130,26 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        // Cleanup created file if any (filename is based on timestamp so hard to predict exactly here without mocking time or file system,
-        // but we can check if it returns OK).
-        // For a true unit test, we should abstract the filesystem, but for this simple integration test, checking the status code is a good start.
+        // Check if a file was created in the recordings directory
+        let entries = std::fs::read_dir("recordings").expect("Failed to read recordings dir");
+        let mut file_found = false;
+
+        for entry in entries {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.extension().and_then(|s| s.to_str()) == Some("webm") {
+                    // Check if content matches "Test Data" (size should be 9 bytes)
+                    let metadata = std::fs::metadata(&path).unwrap();
+                    if metadata.len() == 9 {
+                        file_found = true;
+                        // Clean up
+                        std::fs::remove_file(path).expect("Failed to delete test file");
+                        break;
+                    }
+                }
+            }
+        }
+
+        assert!(file_found, "Uploaded file not found in recordings directory");
     }
 }
