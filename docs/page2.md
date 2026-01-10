@@ -33,6 +33,13 @@ The implementation consists of a frontend button that records audio from the use
 4. Click **Stop Recording** to complete the capture and upload the file.
 5. Verify the recording by checking for a new `.webm` file in the project directory.
 
+### Automated Tests
+You can also run the backend integration tests to verify the server logic:
+```bash
+cargo test
+```
+This will test the root handler and the upload functionality (including file creation and cleanup).
+
 ## Development Notes: Refreshing Changes
 
 If you modify `index.html` or any Rust files, follow these steps to see the changes:
