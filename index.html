@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workflow</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <button id="recordBtn">Record Audio</button>
@@ -45,8 +46,7 @@
                     }
                     mediaRecorder.start();
                     recordBtn.textContent = 'Stop Recording';
-                    recordBtn.style.backgroundColor = 'red';
-                    recordBtn.style.color = 'white';
+                    recordBtn.classList.add('recording');
                 } catch (error) {
                     console.error('Error accessing microphone:', error);
                     return;
@@ -55,8 +55,7 @@
                 console.log('wala pay na record');
                 mediaRecorder.stop();
                 recordBtn.textContent = 'Record Audio';
-                recordBtn.style.backgroundColor = '';
-                recordBtn.style.color = '';
+                recordBtn.classList.remove('recording');
                 audioChunks = [];
             }
         });

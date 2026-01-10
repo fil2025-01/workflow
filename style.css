@@ -1,0 +1,25 @@
+body {
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f2f5;
+}
+
+#recordBtn {
+    padding: 15px 30px;
+    font-size: 18px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+#recordBtn.recording {
+    background-color: red;
+    animation: pulse 2s infinite;
+}

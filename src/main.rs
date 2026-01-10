@@ -31,11 +31,17 @@ fn create_app() -> Router {
     Router::new()
         .route("/", get(handler))
         .route("/upload", post(upload_handler))
+        .route("/style.css", get(style_handler))
 }
 
 // Handler that returns HTML
 async fn handler() -> Html<&'static str> {
     Html(include_str!("../index.html"))
+}
+
+// Handler that returns CSS
+async fn style_handler() -> impl IntoResponse {
+    ([("content-type", "text/css")], include_str!("../style.css"))
 }
 
 // Handler for uploading audio
