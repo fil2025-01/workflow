@@ -5,26 +5,32 @@ use axum::{
     Router,
     http::StatusCode,
 };
+use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::path::Path;
 
 #[tokio::main]
 async fn main() {
     // Build our application with routes
-    let app = Router::new()
-        .route("/", get(handler))
-        .route("/upload", post(upload_handler));
+    let app = create_app();
 
     // Define the address to listen on
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
-    
+
     println!("Listening on http://127.0.0.1:3000");
 
     // Run the server
     axum::serve(listener, app).await.unwrap();
+}
+
+fn create_app() -> Router {
+    Router::new()
+        .route("/", get(handler))
+        .route("/upload", post(upload_handler))
 }
 
 // Handler that returns HTML
