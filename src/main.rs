@@ -40,6 +40,12 @@ async fn handler() -> Html<&'static str> {
 
 // Handler for uploading audio
 async fn upload_handler(mut multipart: Multipart) -> impl IntoResponse {
+    let upload_dir = "recordings";
+    if let Err(e) = fs::create_dir_all(upload_dir) {
+        eprintln!("Failed to create upload directory: {}", e);
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+
     while let Ok(Some(field)) = multipart.next_field().await {
         let name = field.name().unwrap_or("unknown").to_string();
         if name == "file" {
@@ -49,16 +55,26 @@ async fn upload_handler(mut multipart: Multipart) -> impl IntoResponse {
                     .unwrap()
                     .as_secs();
                 let filename = format!("recording_{}.webm", timestamp);
-                
-                if let Ok(mut file) = File::create(&filename) {
+                let filepath = Path::new(upload_dir).join(&filename);
+
+                if let Ok(mut file) = File::create(&filepath) {
                     if file.write_all(&data).is_ok() {
-                        println!("Saved file: {}", filename);
+                        println!("Saved file: {}", filepath.display());
+
+                        if let Ok(metadata) = fs::metadata(&filepath) {
+                            let size = metadata.len();
+                            if size > 0 {
+                                println!("Success! File is not empty. {}", size);
+                            } else {
+                                println!("Warning! File is empty. {}", size);
+                            }
+                        }
                     } else {
-                        eprintln!("Failed to write to file: {}", filename);
+                        eprintln!("Failed to write to file: {}", filepath.display());
                         return StatusCode::INTERNAL_SERVER_ERROR;
                     }
                 } else {
-                    eprintln!("Failed to create file: {}", filename);
+                    eprintln!("Failed to create file: {}", filepath.display());
                     return StatusCode::INTERNAL_SERVER_ERROR;
                 }
             }
