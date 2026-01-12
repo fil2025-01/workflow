@@ -1,4 +1,4 @@
-[Prev](./page2.md)
+[Prev](./page2.md) | [Next](./page4.md)
 
 # TypeScript Migration
 
@@ -32,4 +32,4 @@ The client-side logic has been migrated from JavaScript to TypeScript to improve
    ```
    The Rust server embeds `script.js` at compile time, so ensure you build the JS before running the server.
 
-[Prev](./page2.md)
+[Prev](./page2.md) | [Next](./page4.md)
