@@ -1,10 +1,11 @@
 use axum::{
     extract::Multipart,
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Json},
     routing::{get, post},
     Router,
     http::StatusCode,
 };
+use tower_http::services::ServeDir;
 use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -12,6 +13,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use base64::{Engine as _, engine::general_purpose};
+use walkdir::WalkDir;
 
 #[tokio::main]
 async fn main() {
@@ -47,6 +49,8 @@ fn create_app() -> Router {
     Router::new()
         .route("/", get(handler))
         .route("/upload", post(upload_handler))
+        .route("/recordings", get(list_recordings))
+        .nest_service("/files", ServeDir::new("recordings"))
         .route("/style.css", get(style_handler))
         .route("/script.js", get(script_handler))
 }
@@ -64,6 +68,44 @@ async fn style_handler() -> impl IntoResponse {
 // Handler that returns JS
 async fn script_handler() -> impl IntoResponse {
     ([("content-type", "text/javascript")], include_str!("../script.js"))
+}
+
+#[derive(Serialize)]
+struct RecordingFile {
+    path: String,
+    name: String,
+    is_transcript: bool,
+}
+
+// Handler to list all recordings recursively
+async fn list_recordings() -> Json<Vec<RecordingFile>> {
+    let mut files = Vec::new();
+    let root_dir = "recordings";
+
+    for entry in WalkDir::new(root_dir).into_iter().filter_map(|e| e.ok()) {
+        if entry.file_type().is_file() {
+            let path = entry.path();
+            if let Some(extension) = path.extension() {
+                let ext_str = extension.to_string_lossy();
+                if ext_str == "webm" || ext_str == "txt" {
+                    // Create relative path for serving
+                    let relative_path = path.strip_prefix(root_dir).unwrap_or(path);
+                    let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
+                    
+                    files.push(RecordingFile {
+                        path: format!("/files/{}", relative_path_str),
+                        name: entry.file_name().to_string_lossy().to_string(),
+                        is_transcript: ext_str == "txt",
+                    });
+                }
+            }
+        }
+    }
+    
+    // Sort files by name (timestamp)
+    files.sort_by(|a, b| b.name.cmp(&a.name));
+
+    Json(files)
 }
 
 // Handler for uploading audio

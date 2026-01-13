@@ -62,4 +62,4 @@ Gemini supports multimodal input (text + audio). We will use the `generateConten
 ## Future Enhancements
 - **Frontend Display**: Update `index.html` to poll for the `.txt` file and display the transcription to the user.
 
-Prev | Next
+[Prev](./page3.md) | [Next](./page5.md)
