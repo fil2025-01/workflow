@@ -358,4 +358,44 @@ mod tests {
 
         assert!(file_found, "Uploaded file not found in recordings directory");
     }
+
+    #[tokio::test]
+    async fn test_style_css() {
+        let app = create_app();
+
+        let response = app
+            .oneshot(Request::builder().uri("/style.css").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["content-type"], "text/css");
+    }
+
+    #[tokio::test]
+    async fn test_script_js() {
+        let app = create_app();
+
+        let response = app
+            .oneshot(Request::builder().uri("/script.js").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["content-type"], "text/javascript");
+    }
+
+    #[tokio::test]
+    async fn test_list_recordings() {
+        let app = create_app();
+
+        let response = app
+            .oneshot(Request::builder().uri("/recordings").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        // We can't easily verify the body content since it depends on the file system,
+        // but we verify the endpoint is reachable.
+    }
 }
