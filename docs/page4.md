@@ -5,13 +5,13 @@
 This document outlines the strategy to integrate Google's Gemini model to transcribe audio recordings stored in the `recordings/` directory.
 
 ## Goal
-Automatically convert user-uploaded `.webm` audio files into text using the Gemini API (specifically a multimodal model like `gemini-1.5-flash`) and save the transcript locally.
+Automatically convert user-uploaded `.webm` audio files into text using the Gemini API (specifically a multimodal model like `gemini-2.0-flash`) and save the transcript locally.
 
 ## Prerequisites
 
 1.  **Google AI Studio API Key**:
     *   Get an API key from Google AI Studio.
-    *   Set it as an environment variable: `GEMINI_API_KEY`.
+    *   Set it as an environment variable: `LOCAL_GEMINI_API_KEY`.
 
 2.  **Rust Dependencies**:
     Update `Cargo.toml` to include libraries for HTTP requests and JSON handling:
@@ -33,7 +33,7 @@ The simplest approach is to trigger the transcription process immediately after 
 Gemini supports multimodal input (text + audio). We will use the `generateContent` endpoint.
 
 **Endpoint:**
-`POST https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY`
+`POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_API_KEY`
 
 **Payload:**
 ```json
