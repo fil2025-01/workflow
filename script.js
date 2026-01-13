@@ -1,13 +1,23 @@
 "use strict";
 const recordBtn = document.querySelector('#recordBtn');
 const recordingsList = document.getElementById('recordingsList');
+const dateFilter = document.getElementById('dateFilter');
 let mediaRecorder = null;
 let audioChunks = [];
 async function loadRecordings() {
     try {
-        const response = await fetch('/recordings');
+        const date = dateFilter.value;
+        let url = '/recordings';
+        if (date) {
+            url += `?date=${date}`;
+        }
+        const response = await fetch(url);
         const files = await response.json();
         recordingsList.innerHTML = '';
+        if (files.length === 0) {
+            recordingsList.innerHTML = '<p>No recordings found for this date.</p>';
+            return;
+        }
         // Group files by base name (timestamp)
         const groups = {};
         files.forEach(file => {
@@ -62,10 +72,16 @@ async function loadRecordings() {
     }
     catch (error) {
         console.error('Error loading recordings:', error);
+        recordingsList.innerHTML = '<p>Error loading recordings.</p>';
     }
 }
+// Set default date to today
+const today = new Date().toISOString().split('T')[0];
+dateFilter.value = today;
 // Load recordings on startup
 loadRecordings();
+// Reload on date change
+dateFilter.addEventListener('change', loadRecordings);
 recordBtn.addEventListener('click', async () => {
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         try {

@@ -1,5 +1,5 @@
 use axum::{
-    extract::Multipart,
+    extract::{Multipart, Query},
     response::{Html, IntoResponse, Json},
     routing::{get, post},
     Router,
@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use base64::{Engine as _, engine::general_purpose};
 use walkdir::WalkDir;
-use chrono::{DateTime, Local, Datelike};
+use chrono::{DateTime, Local, Datelike, NaiveDate};
 
 #[tokio::main]
 async fn main() {
@@ -94,31 +94,55 @@ struct RecordingFile {
     is_transcript: bool,
 }
 
-// Handler to list all recordings recursively
-async fn list_recordings() -> Json<Vec<RecordingFile>> {
+#[derive(Deserialize)]
+struct DateFilter {
+    date: Option<String>,
+}
+
+// Handler to list recordings (optionally filtered by date)
+async fn list_recordings(Query(filter): Query<DateFilter>) -> Json<Vec<RecordingFile>> {
     let mut files = Vec::new();
     let root_dir = "recordings";
+    
+    let target_dir = if let Some(date_str) = filter.date {
+        // user provided date: YYYY-MM-DD
+        if let Ok(date) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+            format!("{}/{}/{}/{}", root_dir, date.year(), date.month(), date.day())
+        } else {
+            // Invalid date format, just return empty or default to root (let's return empty for safety)
+            return Json(vec![]);
+        }
+    } else {
+        // Default to today
+        let now: DateTime<Local> = Local::now();
+        format!("{}/{}/{}/{}", root_dir, now.year(), now.month(), now.day())
+    };
 
-    for entry in WalkDir::new(root_dir).into_iter().filter_map(|e| e.ok()) {
-        if entry.file_type().is_file() {
-            let path = entry.path();
-            if let Some(extension) = path.extension() {
-                let ext_str = extension.to_string_lossy();
-                if ext_str == "webm" || ext_str == "txt" {
-                    // Create relative path for serving
-                    let relative_path = path.strip_prefix(root_dir).unwrap_or(path);
-                    let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
-
-                    files.push(RecordingFile {
-                        path: format!("/files/{}", relative_path_str),
-                        name: entry.file_name().to_string_lossy().to_string(),
-                        is_transcript: ext_str == "txt",
-                    });
+    // Check if directory exists
+    if Path::new(&target_dir).exists() {
+        for entry in WalkDir::new(&target_dir).into_iter().filter_map(|e| e.ok()) {
+            if entry.file_type().is_file() {
+                let path = entry.path();
+                if let Some(extension) = path.extension() {
+                    let ext_str = extension.to_string_lossy();
+                    if ext_str == "webm" || ext_str == "txt" {
+                        // Create relative path for serving. 
+                        // Note: ServeDir is mounted at /files serving "recordings/"
+                        // So if file is recordings/2026/1/12/file.webm, we want /files/2026/1/12/file.webm
+                        let relative_path = path.strip_prefix(root_dir).unwrap_or(path);
+                        let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
+                        
+                        files.push(RecordingFile {
+                            path: format!("/files/{}", relative_path_str),
+                            name: entry.file_name().to_string_lossy().to_string(),
+                            is_transcript: ext_str == "txt",
+                        });
+                    }
                 }
             }
         }
     }
-
+    
     // Sort files by name (timestamp)
     files.sort_by(|a, b| b.name.cmp(&a.name));
 

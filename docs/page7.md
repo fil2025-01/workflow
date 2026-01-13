@@ -1,4 +1,4 @@
-[Prev](./page6.md)
+[Prev](./page6.md) | [Next](./page8.md)
 
 # Date-Based Filtering for Recording History
 
@@ -46,4 +46,4 @@ Update the client-side UI to control the date selection.
 2.  **Frontend**: Add the date picker, handle the `change` event, and update the fetch URL.
 3.  **Docs**: Update documentation to reflect the API changes.
 
-[Prev](./page6.md)
+[Prev](./page6.md) | [Next](./page8.md)
