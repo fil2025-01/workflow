@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use base64::{Engine as _, engine::general_purpose};
 use walkdir::WalkDir;
+use chrono::{DateTime, Local, Datelike};
 
 #[tokio::main]
 async fn main() {
@@ -126,8 +127,10 @@ async fn list_recordings() -> Json<Vec<RecordingFile>> {
 
 // Handler for uploading audio
 async fn upload_handler(mut multipart: Multipart) -> impl IntoResponse {
-    let upload_dir = "recordings";
-    if let Err(e) = fs::create_dir_all(upload_dir) {
+    let now: DateTime<Local> = Local::now();
+    let upload_dir = format!("recordings/{}/{}/{}", now.year(), now.month(), now.day());
+
+    if let Err(e) = fs::create_dir_all(&upload_dir) {
         eprintln!("Failed to create upload directory: {}", e);
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
@@ -141,7 +144,7 @@ async fn upload_handler(mut multipart: Multipart) -> impl IntoResponse {
                     .unwrap()
                     .as_secs();
                 let filename = format!("recording_{}.webm", timestamp);
-                let filepath = Path::new(upload_dir).join(&filename);
+                let filepath = Path::new(&upload_dir).join(&filename);
 
                 if let Ok(mut file) = File::create(&filepath) {
                     if file.write_all(&data).is_ok() {
@@ -332,19 +335,20 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        // Check if a file was created in the recordings directory
-        let entries = std::fs::read_dir("recordings").expect("Failed to read recordings dir");
+        // Check if a file was created in the recordings directory (recursively)
+        let root_dir = "recordings";
         let mut file_found = false;
 
-        for entry in entries {
-            if let Ok(entry) = entry {
+        for entry in WalkDir::new(root_dir).into_iter().filter_map(|e| e.ok()) {
+            if entry.file_type().is_file() {
                 let path = entry.path();
                 if path.extension().and_then(|s| s.to_str()) == Some("webm") {
                     // Check if content matches "Test Data" (size should be 9 bytes)
                     let metadata = std::fs::metadata(&path).unwrap();
                     if metadata.len() == 9 {
                         file_found = true;
-                        // Clean up
+                        // Clean up - we can't easily delete the folders here without more logic,
+                        // but we can delete the file.
                         std::fs::remove_file(path).expect("Failed to delete test file");
                         break;
                     }
