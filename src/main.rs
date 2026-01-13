@@ -35,11 +35,27 @@ async fn main() {
     let app = create_app();
 
     // Define the address to listen on
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
-
-    println!("Listening on http://127.0.0.1:3000");
+    let mut port = 3000;
+    let listener = loop {
+        let addr = format!("127.0.0.1:{}", port);
+        match tokio::net::TcpListener::bind(&addr).await {
+            Ok(listener) => {
+                println!("Listening on http://{}", addr);
+                break listener;
+            }
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::AddrInUse {
+                    println!("Port {} is in use, trying next port...", port);
+                    port += 1;
+                    if port > 3010 {
+                        panic!("Could not find an open port between 3000 and 3010");
+                    }
+                } else {
+                    panic!("Failed to bind to address: {}", e);
+                }
+            }
+        }
+    };
 
     // Run the server
     axum::serve(listener, app).await.unwrap();
@@ -91,7 +107,7 @@ async fn list_recordings() -> Json<Vec<RecordingFile>> {
                     // Create relative path for serving
                     let relative_path = path.strip_prefix(root_dir).unwrap_or(path);
                     let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
-                    
+
                     files.push(RecordingFile {
                         path: format!("/files/{}", relative_path_str),
                         name: entry.file_name().to_string_lossy().to_string(),
@@ -101,7 +117,7 @@ async fn list_recordings() -> Json<Vec<RecordingFile>> {
             }
         }
     }
-    
+
     // Sort files by name (timestamp)
     files.sort_by(|a, b| b.name.cmp(&a.name));
 
