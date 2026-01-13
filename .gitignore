@@ -2,3 +2,5 @@
 *.webm
 server.log
 node_modules/
+.env
+recordings/

@@ -7,12 +7,28 @@ use axum::{
 };
 use std::fs;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use serde::{Deserialize, Serialize};
+use base64::{Engine as _, engine::general_purpose};
 
 #[tokio::main]
 async fn main() {
+    dotenv::dotenv().ok();
+
+    match std::env::var("GEMINI_API_KEY") {
+        Ok(key) => {
+            let masked = if key.len() > 4 {
+                format!("...{}", &key[key.len()-4..])
+            } else {
+                "****".to_string()
+            };
+            println!("GEMINI_API_KEY loaded successfully: {}", masked);
+        },
+        Err(_) => println!("GEMINI_API_KEY not found in environment or .env file"),
+    }
+
     // Build our application with routes
     let app = create_app();
 
@@ -77,6 +93,15 @@ async fn upload_handler(mut multipart: Multipart) -> impl IntoResponse {
                             let size = metadata.len();
                             if size > 0 {
                                 println!("Success! File is not empty. {}", size);
+
+                                // Spawn transcription task
+                                let filepath_clone = filepath.clone();
+                                tokio::spawn(async move {
+                                    if let Err(e) = transcribe_audio(filepath_clone).await {
+                                        eprintln!("Transcription failed: {}", e);
+                                    }
+                                });
+
                             } else {
                                 println!("Warning! File is empty. {}", size);
                             }
@@ -94,6 +119,113 @@ async fn upload_handler(mut multipart: Multipart) -> impl IntoResponse {
     }
     StatusCode::OK
 }
+
+#[derive(Serialize)]
+struct GenerateContentRequest {
+    contents: Vec<Content>,
+}
+
+#[derive(Serialize)]
+struct Content {
+    parts: Vec<Part>,
+}
+
+#[derive(Serialize)]
+#[serde(untagged)]
+enum Part {
+    Text { text: String },
+    InlineData { inline_data: InlineData },
+}
+
+#[derive(Serialize)]
+struct InlineData {
+    mime_type: String,
+    data: String,
+}
+
+#[derive(Deserialize)]
+struct GenerateContentResponse {
+    candidates: Option<Vec<Candidate>>,
+}
+
+#[derive(Deserialize)]
+struct Candidate {
+    content: CandidateContent,
+}
+
+#[derive(Deserialize)]
+struct CandidateContent {
+    parts: Vec<CandidatePart>,
+}
+
+#[derive(Deserialize)]
+struct CandidatePart {
+    text: Option<String>,
+}
+
+async fn transcribe_audio(filepath: PathBuf) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let api_key = std::env::var("LOCAL_GEMINI_API_KEY").map_err(|_| "LOCAL_GEMINI_API_KEY not set")?;
+
+    // Read the file
+    let mut file = File::open(&filepath)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+
+    // Encode to base64
+    let base64_audio = general_purpose::STANDARD.encode(&buffer);
+
+    // Construct request
+    let request_body = GenerateContentRequest {
+        contents: vec![Content {
+            parts: vec![
+                Part::Text { text: "Please transcribe the following audio file.".to_string() },
+                Part::InlineData {
+                    inline_data: InlineData {
+                        mime_type: "audio/webm".to_string(),
+                        data: base64_audio,
+                    },
+                },
+            ],
+        }],
+    };
+
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}",
+        api_key
+    );
+
+    let res = client.post(&url)
+        .json(&request_body)
+        .send()
+        .await?;
+
+    if !res.status().is_success() {
+        let text = res.text().await?;
+        return Err(format!("API Error: {}", text).into());
+    }
+
+    let response_data: GenerateContentResponse = res.json().await?;
+
+    if let Some(candidates) = response_data.candidates {
+        if let Some(first_candidate) = candidates.first() {
+            if let Some(first_part) = first_candidate.content.parts.first() {
+                if let Some(text) = &first_part.text {
+                    // Save transcript
+                    let mut txt_path = filepath.clone();
+                    txt_path.set_extension("txt");
+                    let mut txt_file = File::create(&txt_path)?;
+                    txt_file.write_all(text.as_bytes())?;
+                    println!("Transcription saved to: {}", txt_path.display());
+                    return Ok(());
+                }
+            }
+        }
+    }
+
+    Err("No transcription text found in response".into())
+}
+
 
 #[cfg(test)]
 mod tests {
