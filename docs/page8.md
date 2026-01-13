@@ -1,0 +1,1 @@
+ now for index.html, lets make the button and recordings an alternating display, lets add new button says view recording, then on recording page lets add a back recording

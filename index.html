@@ -7,12 +7,21 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <button id="recordBtn">Record Audio</button>
-    <div style="margin: 20px 0;">
-        <label for="dateFilter">Filter by Date:</label>
-        <input type="date" id="dateFilter">
+    <div id="recordingSection">
+        <button id="recordBtn">Record Audio</button>
+        <div style="margin-top: 20px;">
+            <button id="viewHistoryBtn">View Recordings</button>
+        </div>
     </div>
-    <div id="recordingsList"></div>
+
+    <div id="historySection" style="display: none;">
+        <button id="backBtn">Back</button>
+        <div style="margin: 20px 0;">
+            <label for="dateFilter">Filter by Date:</label>
+            <input type="date" id="dateFilter">
+        </div>
+        <div id="recordingsList"></div>
+    </div>
     <script src="/script.js"></script>
 </body>
 </html>

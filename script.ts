@@ -1,6 +1,11 @@
 const recordBtn = document.querySelector('#recordBtn') as HTMLButtonElement;
 const recordingsList = document.getElementById('recordingsList') as HTMLDivElement;
 const dateFilter = document.getElementById('dateFilter') as HTMLInputElement;
+const viewHistoryBtn = document.getElementById('viewHistoryBtn') as HTMLButtonElement;
+const backBtn = document.getElementById('backBtn') as HTMLButtonElement;
+const recordingSection = document.getElementById('recordingSection') as HTMLDivElement;
+const historySection = document.getElementById('historySection') as HTMLDivElement;
+
 let mediaRecorder: MediaRecorder | null = null;
 let audioChunks: Blob[] = [];
 
@@ -90,8 +95,17 @@ async function loadRecordings() {
 const today = new Date().toISOString().split('T')[0];
 dateFilter.value = today;
 
-// Load recordings on startup
-loadRecordings();
+// Navigation
+viewHistoryBtn.addEventListener('click', () => {
+    recordingSection.style.display = 'none';
+    historySection.style.display = 'block';
+    loadRecordings();
+});
+
+backBtn.addEventListener('click', () => {
+    historySection.style.display = 'none';
+    recordingSection.style.display = 'block';
+});
 
 // Reload on date change
 dateFilter.addEventListener('change', loadRecordings);
