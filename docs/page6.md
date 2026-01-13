@@ -34,3 +34,5 @@ recordings
             ├── recording_1768269097.txt
             ├── recording_1768269097.webm
             └── ...
+
+[Prev](./page5.md) | [Next](./page7.md)
