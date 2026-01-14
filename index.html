@@ -1,27 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workflow</title>
-    <link rel="stylesheet" href="/style.css">
-</head>
-<body>
-    <div id="recordingSection">
-        <button id="recordBtn">Record Audio</button>
-        <div style="margin-top: 20px;">
-            <button id="viewHistoryBtn">View Recordings</button>
-        </div>
-    </div>
 
-    <div id="historySection" style="display: none;">
-        <button id="backBtn">Back</button>
-        <div style="margin: 20px 0;">
-            <label for="dateFilter">Filter by Date:</label>
-            <input type="date" id="dateFilter">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <div class="sidebar">
+      <h2>Menu</h2>
+    </div>
+    <div class="main-content">
+      <div id="recordingSection" class="container">
+        <button id="recordBtn">Record Audio</button>
+        <button id="viewHistoryBtn">View Recordings</button>
+      </div>
+
+      <div id="historySection" style="display: none;">
+        <div class="flex-row">
+          <button id="backBtn">Back</button>
+          <div class="date-filter-group">
+            <label for="dateFilter" class="date-label">Filter by Date:</label>
+            <input type="date" id="dateFilter" class="date-input">
+          </div>
         </div>
         <div id="recordingsList"></div>
+      </div>
     </div>
-    <script src="/script.js"></script>
+  </div>
+  <script src="/script.js"></script>
 </body>
+
 </html>
