@@ -67,31 +67,27 @@ async function loadRecordings() {
                 const colNo = tr.querySelector('.col-no') as HTMLTableCellElement;
                 colNo.textContent = index.toString();
 
-                // Name
-                const colName = tr.querySelector('.col-name') as HTMLTableCellElement;
-                colName.textContent = key;
-
-                // Audio
-                const colAudio = tr.querySelector('.col-audio audio') as HTMLAudioElement;
-                colAudio.src = group.audio;
-
-                // Transcript (Preview)
-                const colTranscript = tr.querySelector('.col-transcript') as HTMLTableCellElement;
+                // Title (Transcript or Name)
+                const colTitle = tr.querySelector('.col-title') as HTMLTableCellElement;
                 if (group.transcript) {
                     const preview = document.createElement('span');
                     preview.className = 'transcript-preview';
                     preview.textContent = 'Loading...';
-                    colTranscript.appendChild(preview);
+                    colTitle.appendChild(preview);
                     
                     fetch(group.transcript).then(res => res.text()).then(text => {
                         preview.textContent = text.length > 50 ? text.substring(0, 50) + '...' : text;
                         preview.title = text;
                     }).catch(() => {
-                        preview.textContent = 'Error';
+                        preview.textContent = key;
                     });
                 } else {
-                    colTranscript.textContent = '-';
+                    colTitle.textContent = key;
                 }
+
+                // Audio
+                const colAudio = tr.querySelector('.col-audio audio') as HTMLAudioElement;
+                colAudio.src = group.audio;
 
                 // Action
                 const deleteBtn = tr.querySelector('.delete-btn') as HTMLButtonElement;
