@@ -1,6 +1,6 @@
 use axum::{
-    extract::{Multipart, Query},
-    response::{Html, IntoResponse, Json},
+    extract::{Multipart, Query, Json},
+    response::{Html, IntoResponse, Json as AxumJson},
     routing::{get, post},
     Router,
     http::StatusCode,
@@ -66,7 +66,7 @@ fn create_app() -> Router {
     Router::new()
         .route("/", get(handler))
         .route("/upload", post(upload_handler))
-        .route("/recordings", get(list_recordings))
+        .route("/recordings", get(list_recordings).delete(delete_recording))
         .nest_service("/files", ServeDir::new("recordings"))
         .route("/style.css", get(style_handler))
         .route("/script.js", get(script_handler))
@@ -99,8 +99,52 @@ struct DateFilter {
     date: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct DeleteRequest {
+    path: String,
+}
+
+// Handler to delete a recording
+async fn delete_recording(Json(payload): Json<DeleteRequest>) -> impl IntoResponse {
+    // Basic security check: ensure path starts with /files/ and doesn't contain ..
+    if !payload.path.starts_with("/files/") || payload.path.contains("..") {
+        return StatusCode::BAD_REQUEST;
+    }
+
+    // Convert /files/2026/1/12/file.webm -> recordings/2026/1/12/file.webm
+    let relative_path = &payload.path["/files/".len()..];
+    let file_path = Path::new("recordings").join(relative_path);
+
+    // Try to delete the file
+    if fs::remove_file(&file_path).is_ok() {
+        println!("Deleted file: {}", file_path.display());
+        
+        // Also try to delete corresponding transcript if it exists
+        // Check extension
+        if let Some(ext) = file_path.extension() {
+            let ext_str = ext.to_string_lossy();
+            if ext_str == "webm" {
+                let txt_path = file_path.with_extension("txt");
+                if txt_path.exists() {
+                    let _ = fs::remove_file(txt_path);
+                }
+            } else if ext_str == "txt" {
+                 let webm_path = file_path.with_extension("webm");
+                 if webm_path.exists() {
+                     let _ = fs::remove_file(webm_path);
+                 }
+            }
+        }
+        
+        StatusCode::OK
+    } else {
+        eprintln!("Failed to delete file: {}", file_path.display());
+        StatusCode::NOT_FOUND
+    }
+}
+
 // Handler to list recordings (optionally filtered by date)
-async fn list_recordings(Query(filter): Query<DateFilter>) -> Json<Vec<RecordingFile>> {
+async fn list_recordings(Query(filter): Query<DateFilter>) -> AxumJson<Vec<RecordingFile>> {
     let mut files = Vec::new();
     let root_dir = "recordings";
     

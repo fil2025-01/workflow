@@ -70,6 +70,40 @@ async function loadRecordings() {
                     }
                     div.appendChild(transcriptDiv);
                 }
+                // Delete Button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.style.backgroundColor = '#ef4444'; // Red color
+                deleteBtn.style.color = 'white';
+                deleteBtn.style.border = 'none';
+                deleteBtn.style.padding = '5px 10px';
+                deleteBtn.style.borderRadius = '4px';
+                deleteBtn.style.cursor = 'pointer';
+                deleteBtn.style.marginTop = '10px';
+                deleteBtn.addEventListener('click', async () => {
+                    if (confirm('Are you sure you want to delete this recording?')) {
+                        try {
+                            const res = await fetch('/recordings', {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ path: group.audio || group.transcript })
+                            });
+                            if (res.ok) {
+                                loadRecordings();
+                            }
+                            else {
+                                alert('Failed to delete recording.');
+                            }
+                        }
+                        catch (err) {
+                            console.error('Error deleting:', err);
+                            alert('Error deleting recording.');
+                        }
+                    }
+                });
+                div.appendChild(deleteBtn);
                 recordingsList.appendChild(div);
             }
         }
