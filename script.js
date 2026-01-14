@@ -8,6 +8,10 @@ const recordingSection = document.getElementById('recordingSection');
 const historySection = document.getElementById('historySection');
 let mediaRecorder = null;
 let audioChunks = [];
+const statsLabel = document.getElementById('statsLabel');
+const tableTemplate = document.getElementById('table-template');
+const rowTemplate = document.getElementById('row-template');
+const emptyTemplate = document.getElementById('empty-template');
 async function loadRecordings() {
     try {
         const date = dateFilter.value;
@@ -18,14 +22,10 @@ async function loadRecordings() {
         const response = await fetch(url);
         const files = await response.json();
         recordingsList.innerHTML = '';
-        if (files.length === 0) {
-            recordingsList.innerHTML = '<p>No recordings found for this date.</p>';
-            return;
-        }
         // Group files by base name (timestamp)
         const groups = {};
+        let count = 0;
         files.forEach(file => {
-            // Remove extension to get base name (e.g., recording_123456789)
             const baseName = file.name.replace(/\.[^/.]+$/, "");
             if (!groups[baseName]) {
                 groups[baseName] = {};
@@ -37,80 +37,75 @@ async function loadRecordings() {
                 groups[baseName].audio = file.path;
             }
         });
-        // Sort by timestamp ascending (oldest to newest)
         const sortedKeys = Object.keys(groups).sort();
+        count = sortedKeys.filter(k => groups[k].audio).length;
+        statsLabel.textContent = `Total Recordings: ${count}`;
+        if (count === 0) {
+            const emptyNode = document.importNode(emptyTemplate.content, true);
+            recordingsList.appendChild(emptyNode);
+            return;
+        }
+        const tableNode = document.importNode(tableTemplate.content, true);
+        const tbody = tableNode.querySelector('tbody');
+        let index = 1;
         for (const key of sortedKeys) {
             const group = groups[key];
             if (group.audio) {
-                const div = document.createElement('div');
-                div.className = 'recording-item';
-                div.style.marginBottom = '20px';
-                div.style.padding = '10px';
-                div.style.border = '1px solid #ddd';
-                div.style.borderRadius = '5px';
-                const title = document.createElement('div');
-                title.textContent = key;
-                div.appendChild(title);
-                const audio = document.createElement('audio');
-                audio.controls = true;
-                audio.src = group.audio;
-                div.appendChild(audio);
+                const rowNode = document.importNode(rowTemplate.content, true);
+                const tr = rowNode.querySelector('tr');
+                // No.
+                const colNo = tr.querySelector('.col-no');
+                colNo.textContent = index.toString();
+                // Name
+                const colName = tr.querySelector('.col-name');
+                colName.textContent = key;
+                // Audio
+                const colAudio = tr.querySelector('.col-audio audio');
+                colAudio.src = group.audio;
+                // Transcript (Preview)
+                const colTranscript = tr.querySelector('.col-transcript');
                 if (group.transcript) {
-                    const transcriptDiv = document.createElement('div');
-                    transcriptDiv.style.marginTop = '10px';
-                    transcriptDiv.style.padding = '10px';
-                    transcriptDiv.style.backgroundColor = '#f9f9f9';
-                    try {
-                        const transcriptResponse = await fetch(group.transcript);
-                        const text = await transcriptResponse.text();
-                        transcriptDiv.textContent = text;
-                    }
-                    catch (e) {
-                        transcriptDiv.textContent = 'Error loading transcript.';
-                    }
-                    div.appendChild(transcriptDiv);
+                    const preview = document.createElement('span');
+                    preview.className = 'transcript-preview';
+                    preview.textContent = 'Loading...';
+                    colTranscript.appendChild(preview);
+                    fetch(group.transcript).then(res => res.text()).then(text => {
+                        preview.textContent = text.length > 50 ? text.substring(0, 50) + '...' : text;
+                        preview.title = text;
+                    }).catch(() => {
+                        preview.textContent = 'Error';
+                    });
                 }
-                // Delete Button
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.style.backgroundColor = '#ef4444'; // Red color
-                deleteBtn.style.color = 'white';
-                deleteBtn.style.border = 'none';
-                deleteBtn.style.padding = '5px 10px';
-                deleteBtn.style.borderRadius = '4px';
-                deleteBtn.style.cursor = 'pointer';
-                deleteBtn.style.marginTop = '10px';
+                else {
+                    colTranscript.textContent = '-';
+                }
+                // Action
+                const deleteBtn = tr.querySelector('.delete-btn');
                 deleteBtn.addEventListener('click', async () => {
-                    if (confirm('Are you sure you want to delete this recording?')) {
+                    if (confirm('Delete this recording?')) {
                         try {
                             const res = await fetch('/recordings', {
                                 method: 'DELETE',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
+                                headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ path: group.audio || group.transcript })
                             });
-                            if (res.ok) {
+                            if (res.ok)
                                 loadRecordings();
-                            }
-                            else {
-                                alert('Failed to delete recording.');
-                            }
                         }
                         catch (err) {
-                            console.error('Error deleting:', err);
-                            alert('Error deleting recording.');
+                            console.error(err);
                         }
                     }
                 });
-                div.appendChild(deleteBtn);
-                recordingsList.appendChild(div);
+                tbody.appendChild(tr);
+                index++;
             }
         }
+        recordingsList.appendChild(tableNode);
     }
     catch (error) {
         console.error('Error loading recordings:', error);
-        recordingsList.innerHTML = '<p>Error loading recordings.</p>';
+        recordingsList.innerHTML = '<p>Error loading data.</p>';
     }
 }
 // Set default date to today

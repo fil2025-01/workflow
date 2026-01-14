@@ -45,6 +45,41 @@
       </div>
     </div>
   </div>
+
+  <!-- Templates -->
+  <template id="table-template">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Name</th>
+                <th>Audio</th>
+                <th>Transcript</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+  </template>
+
+  <template id="row-template">
+    <tr>
+        <td class="col-no"></td>
+        <td class="col-name"></td>
+        <td class="col-audio">
+            <audio controls style="height: 30px;"></audio>
+        </td>
+        <td class="col-transcript"></td>
+        <td class="col-action">
+            <button class="delete-btn">Delete</button>
+        </td>
+    </tr>
+  </template>
+
+  <template id="empty-template">
+    <p style="font-size: 13px; color: #666;">No recordings found.</p>
+  </template>
+
   <script src="/script.js"></script>
 </body>
 

@@ -10,6 +10,9 @@ let mediaRecorder: MediaRecorder | null = null;
 let audioChunks: Blob[] = [];
 
 const statsLabel = document.getElementById('statsLabel') as HTMLSpanElement;
+const tableTemplate = document.getElementById('table-template') as HTMLTemplateElement;
+const rowTemplate = document.getElementById('row-template') as HTMLTemplateElement;
+const emptyTemplate = document.getElementById('empty-template') as HTMLTemplateElement;
 
 async function loadRecordings() {
     try {
@@ -45,78 +48,53 @@ async function loadRecordings() {
         statsLabel.textContent = `Total Recordings: ${count}`;
 
         if (count === 0) {
-            recordingsList.innerHTML = '<p style="font-size: 13px; color: #666;">No recordings found.</p>';
+            const emptyNode = document.importNode(emptyTemplate.content, true);
+            recordingsList.appendChild(emptyNode);
             return;
         }
 
-        const table = document.createElement('table');
-        table.className = 'data-table';
-        
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-            <tr>
-                <th>No.</th>
-                <th>Name</th>
-                <th>Audio</th>
-                <th>Transcript</th>
-                <th>Action</th>
-            </tr>
-        `;
-        table.appendChild(thead);
-
-        const tbody = document.createElement('tbody');
+        const tableNode = document.importNode(tableTemplate.content, true);
+        const tbody = tableNode.querySelector('tbody') as HTMLTableSectionElement;
         let index = 1;
 
         for (const key of sortedKeys) {
             const group = groups[key];
             if (group.audio) {
-                const tr = document.createElement('tr');
+                const rowNode = document.importNode(rowTemplate.content, true);
+                const tr = rowNode.querySelector('tr') as HTMLTableRowElement;
                 
                 // No.
-                const tdNo = document.createElement('td');
-                tdNo.textContent = index.toString();
-                tr.appendChild(tdNo);
+                const colNo = tr.querySelector('.col-no') as HTMLTableCellElement;
+                colNo.textContent = index.toString();
 
                 // Name
-                const tdName = document.createElement('td');
-                tdName.textContent = key;
-                tr.appendChild(tdName);
+                const colName = tr.querySelector('.col-name') as HTMLTableCellElement;
+                colName.textContent = key;
 
                 // Audio
-                const tdAudio = document.createElement('td');
-                const audio = document.createElement('audio');
-                audio.controls = true;
-                audio.src = group.audio;
-                audio.style.height = '30px'; // Compact player
-                tdAudio.appendChild(audio);
-                tr.appendChild(tdAudio);
+                const colAudio = tr.querySelector('.col-audio audio') as HTMLAudioElement;
+                colAudio.src = group.audio;
 
                 // Transcript (Preview)
-                const tdTranscript = document.createElement('td');
+                const colTranscript = tr.querySelector('.col-transcript') as HTMLTableCellElement;
                 if (group.transcript) {
                     const preview = document.createElement('span');
                     preview.className = 'transcript-preview';
                     preview.textContent = 'Loading...';
-                    tdTranscript.appendChild(preview);
+                    colTranscript.appendChild(preview);
                     
-                    // Fetch preview content asynchronously
                     fetch(group.transcript).then(res => res.text()).then(text => {
                         preview.textContent = text.length > 50 ? text.substring(0, 50) + '...' : text;
-                        preview.title = text; // Tooltip full text
+                        preview.title = text;
                     }).catch(() => {
                         preview.textContent = 'Error';
                     });
                 } else {
-                    tdTranscript.textContent = '-';
+                    colTranscript.textContent = '-';
                 }
-                tr.appendChild(tdTranscript);
 
                 // Action
-                const tdAction = document.createElement('td');
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.className = 'delete-btn';
-                
+                const deleteBtn = tr.querySelector('.delete-btn') as HTMLButtonElement;
                 deleteBtn.addEventListener('click', async () => {
                     if (confirm('Delete this recording?')) {
                         try {
@@ -129,15 +107,12 @@ async function loadRecordings() {
                         } catch (err) { console.error(err); }
                     }
                 });
-                tdAction.appendChild(deleteBtn);
-                tr.appendChild(tdAction);
 
                 tbody.appendChild(tr);
                 index++;
             }
         }
-        table.appendChild(tbody);
-        recordingsList.appendChild(table);
+        recordingsList.appendChild(tableNode);
 
     } catch (error) {
         console.error('Error loading recordings:', error);
