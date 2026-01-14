@@ -12,18 +12,26 @@
   <div class="app-layout h-screen">
     <div class="sidebar">
       <div class="sidebar-icon flex justify-center items-center" title="Explorer">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+          <polyline points="13 2 13 9 20 9"></polyline>
+        </svg>
       </div>
       <div class="sidebar-icon flex justify-center items-center" title="Search">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
       </div>
     </div>
     <div class="main-content flex-1 overflow-y-auto">
       <div id="recordingSection" class="container">
         <h1>Audio Workflow</h1>
         <div style="margin-top: 20px;">
-            <button id="recordBtn">Record Audio</button>
-            <button id="viewHistoryBtn">View Recordings</button>
+          <button id="recordBtn">Record Audio</button>
+          <button id="viewHistoryBtn">View Recordings</button>
         </div>
       </div>
 
@@ -40,7 +48,7 @@
           </div>
         </div>
         <div id="recordingsList">
-            <!-- Table will be injected here -->
+          <!-- Table will be injected here -->
         </div>
       </div>
     </div>
@@ -49,30 +57,30 @@
   <!-- Templates -->
   <template id="table-template">
     <table class="data-table">
-        <thead>
-            <tr>
-                <th>No.</th>
-                <th>Name</th>
-                <th>Audio</th>
-                <th>Transcript</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Name</th>
+          <th>Audio</th>
+          <th>Transcript</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
     </table>
   </template>
 
   <template id="row-template">
     <tr>
-        <td class="col-no"></td>
-        <td class="col-name"></td>
-        <td class="col-audio">
-            <audio controls style="height: 30px;"></audio>
-        </td>
-        <td class="col-transcript"></td>
-        <td class="col-action">
-            <button class="delete-btn">Delete</button>
-        </td>
+      <td class="col-no"></td>
+      <td class="col-name"></td>
+      <td class="col-audio">
+        <audio controls style="height: 30px;"></audio>
+      </td>
+      <td class="col-transcript"></td>
+      <td class="col-action">
+        <button class="delete-btn">Delete</button>
+      </td>
     </tr>
   </template>
 
