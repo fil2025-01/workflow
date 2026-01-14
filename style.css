@@ -1,39 +1,41 @@
 body {
-    font-family: sans-serif;
-    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f0f2f5;
+    background-color: #ffffff;
+    color: #333;
     box-sizing: border-box;
+    height: 100vh; /* Fixed viewport height */
+    overflow: hidden; /* Prevent body scroll */
 }
 
 .container {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: calc(100vh - 40px);
+    height: 100%;
 }
 
 .btn, #recordBtn, #viewHistoryBtn, #backBtn {
-    padding: 0.75rem 1.5rem;
-    font-size: 1.125rem;
+    padding: 6px 12px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    background-color: #3b82f6;
+    background-color: #0e639c;
     color: white;
     border: 1px solid transparent;
-    border-radius: 0.5rem;
+    border-radius: 2px;
     transition: background-color 0.15s ease-in-out;
-    margin-left: 10px;
-    margin-right: 10px;
+    margin-right: 8px;
 }
 
 .btn:hover, #recordBtn:hover, #viewHistoryBtn:hover, #backBtn:hover {
-    background-color: #2563eb;
+    background-color: #1177bb;
 }
 
 #recordBtn.recording {
-    background-color: red;
+    background-color: #d62525;
     animation: pulse 2s infinite;
 }
 
@@ -42,49 +44,120 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e1e4e8;
 }
 
 .app-layout {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
     width: 100%;
 }
 
 .sidebar {
-    width: 250px;
-    background-color: white;
-    border-right: 1px solid #e5e7eb;
-    padding: 1.5rem;
-    box-sizing: border-box;
+    width: 50px;
+    background-color: #333333;
+    color: #ccc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10px;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.sidebar-icon {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 10px;
+    background-color: #555;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
 .main-content {
     flex: 1;
-    padding: 1.5rem;
+    padding: 20px;
+    background-color: #fff;
+    overflow-y: auto; /* Independent scroll */
 }
 
 .date-filter-group {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-}
-
-.date-label {
-    font-weight: 500;
-    color: #374151;
+    font-size: 13px;
 }
 
 .date-input {
-    padding: 0.5rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    color: #1f2937;
-    outline: none;
+    padding: 4px 8px;
+    border: 1px solid #cecece;
+    border-radius: 2px;
+    font-size: 13px;
+    color: #333;
 }
 
-.date-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+/* Table Styles */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 10px;
 }
+
+.data-table th, .data-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e1e4e8;
+}
+
+.data-table th {
+    background-color: #f3f3f3;
+    font-weight: 600;
+    color: #555;
+    position: sticky; /* Sticky Header */
+    top: 0;
+    z-index: 1;
+}
+
+.data-table tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.data-table tr:hover {
+    background-color: #f0f0f0;
+}
+
+.transcript-preview {
+    font-family: monospace;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.delete-btn {
+    background-color: transparent;
+    color: #d62525;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px;
+}
+
+.delete-btn:hover {
+    text-decoration: underline;
+}
+
+/* Utilities */
+html, body { height: 100%; overflow: hidden; }
+.flex { display: flex; }
+.justify-center { justify-content: center; }
+.items-center { align-items: center; }
+.h-screen { height: 100vh; }
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.flex-1 { flex: 1; }

@@ -9,25 +9,39 @@
 </head>
 
 <body>
-  <div class="app-layout">
+  <div class="app-layout h-screen">
     <div class="sidebar">
-      <h2>Menu</h2>
+      <div class="sidebar-icon flex justify-center items-center" title="Explorer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+      </div>
+      <div class="sidebar-icon flex justify-center items-center" title="Search">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </div>
     </div>
-    <div class="main-content">
+    <div class="main-content flex-1 overflow-y-auto">
       <div id="recordingSection" class="container">
-        <button id="recordBtn">Record Audio</button>
-        <button id="viewHistoryBtn">View Recordings</button>
+        <h1>Audio Workflow</h1>
+        <div style="margin-top: 20px;">
+            <button id="recordBtn">Record Audio</button>
+            <button id="viewHistoryBtn">View Recordings</button>
+        </div>
       </div>
 
       <div id="historySection" style="display: none;">
+        <h2 style="font-size: 18px; margin-bottom: 10px;">Recording History</h2>
         <div class="flex-row">
-          <button id="backBtn">Back</button>
+          <div style="display: flex; align-items: center;">
+            <button id="backBtn">Back</button>
+            <span id="statsLabel" style="font-size: 13px; color: #666; margin-left: 15px;">Total Recordings: 0</span>
+          </div>
           <div class="date-filter-group">
-            <label for="dateFilter" class="date-label">Filter by Date:</label>
+            <label for="dateFilter" class="date-label">Filter:</label>
             <input type="date" id="dateFilter" class="date-input">
           </div>
         </div>
-        <div id="recordingsList"></div>
+        <div id="recordingsList">
+            <!-- Table will be injected here -->
+        </div>
       </div>
     </div>
   </div>

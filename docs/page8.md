@@ -1,4 +1,4 @@
-[Prev](./page7.md)
+[Prev](./page7.md) | [Next](./page9.md)
 
 # UI Enhancements and File Management
 
@@ -32,4 +32,4 @@ Users can now delete individual recordings directly from the interface.
   - Deletes the specified file (e.g., `.webm`).
   - Automatically checks for and deletes the corresponding pair file (e.g., if deleting audio, it also deletes the `.txt` transcript, and vice-versa) to keep the storage clean.
 
-[Prev](./page7.md)
+[Prev](./page7.md) | [Next](./page9.md)
