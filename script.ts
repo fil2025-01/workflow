@@ -104,7 +104,8 @@ viewHistoryBtn.addEventListener('click', () => {
 
 backBtn.addEventListener('click', () => {
     historySection.style.display = 'none';
-    recordingSection.style.display = 'block';
+    recordingSection.style.display = 'flex';
+    window.scrollTo(0, 0);
 });
 
 // Reload on date change
