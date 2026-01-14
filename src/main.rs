@@ -307,7 +307,7 @@ async fn transcribe_audio(filepath: PathBuf) -> Result<(), Box<dyn std::error::E
     let request_body = GenerateContentRequest {
         contents: vec![Content {
             parts: vec![
-                Part::Text { text: "Please transcribe the following audio file.".to_string() },
+                Part::Text { text: "Transcribe the following audio. Then, provide a short, clean, and descriptive title (max 6 words) summarizing the content. Format your response exactly like this:\nTitle: [Your Title]\nTranscript: [Full Transcription]".to_string() },
                 Part::InlineData {
                     inline_data: InlineData {
                         mime_type: "audio/webm".to_string(),

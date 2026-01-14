@@ -64,8 +64,18 @@ async function loadRecordings() {
                     preview.textContent = 'Loading...';
                     colTitle.appendChild(preview);
                     fetch(group.transcript).then(res => res.text()).then(text => {
-                        preview.textContent = text.length > 50 ? text.substring(0, 50) + '...' : text;
-                        preview.title = text;
+                        const titleMatch = text.match(/^Title:\s*(.+)$/m);
+                        const transcriptMatch = text.match(/^Transcript:\s*([\s\S]+)$/m);
+                        if (titleMatch) {
+                            preview.textContent = titleMatch[1];
+                            if (transcriptMatch) {
+                                preview.title = transcriptMatch[1].trim();
+                            }
+                        }
+                        else {
+                            preview.textContent = text.length > 50 ? text.substring(0, 50) + '...' : text;
+                            preview.title = text;
+                        }
                     }).catch(() => {
                         preview.textContent = key;
                     });
