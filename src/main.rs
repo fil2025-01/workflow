@@ -123,21 +123,22 @@ async fn delete_recording(Json(payload): Json<DeleteRequest>) -> impl IntoRespon
         // Check extension
         if let Some(ext) = file_path.extension() {
             let ext_str = ext.to_string_lossy();
-                        if ext_str == "webm" {
-                            let txt_path = file_path.with_extension("txt");
-                            let json_path = file_path.with_extension("json");
-                            if txt_path.exists() {
-                                let _ = fs::remove_file(txt_path);
-                            }
-                            if json_path.exists() {
-                                let _ = fs::remove_file(json_path);
-                            }
-                        } else if ext_str == "txt" || ext_str == "json" {
-                             let webm_path = file_path.with_extension("webm");
-                             if webm_path.exists() {
-                                 let _ = fs::remove_file(webm_path);
-                             }
-                        }        }
+            if ext_str == "webm" {
+                let txt_path = file_path.with_extension("txt");
+                let json_path = file_path.with_extension("json");
+                if txt_path.exists() {
+                    let _ = fs::remove_file(txt_path);
+                }
+                if json_path.exists() {
+                    let _ = fs::remove_file(json_path);
+                }
+            } else if ext_str == "txt" || ext_str == "json" {
+                let webm_path = file_path.with_extension("webm");
+                if webm_path.exists() {
+                    let _ = fs::remove_file(webm_path);
+                }
+            }
+        }
 
         StatusCode::OK
     } else {
@@ -172,19 +173,20 @@ async fn list_recordings(Query(filter): Query<DateFilter>) -> AxumJson<Vec<Recor
                 let path = entry.path();
                 if let Some(extension) = path.extension() {
                     let ext_str = extension.to_string_lossy();
-                                    if ext_str == "webm" || ext_str == "txt" || ext_str == "json" {
-                                        // Create relative path for serving. 
-                                        // Note: ServeDir is mounted at /files serving "recordings/"
-                                        // So if file is recordings/2026/1/12/file.webm, we want /files/2026/1/12/file.webm
-                                        let relative_path = path.strip_prefix(root_dir).unwrap_or(path);
-                                        let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
-                                        
-                                        files.push(RecordingFile {
-                                            path: format!("/files/{}", relative_path_str),
-                                            name: entry.file_name().to_string_lossy().to_string(),
-                                            is_transcript: ext_str == "txt" || ext_str == "json",
-                                        });
-                                    }                }
+                    if ext_str == "webm" || ext_str == "txt" || ext_str == "json" {
+                        // Create relative path for serving.
+                        // Note: ServeDir is mounted at /files serving "recordings/"
+                        // So if file is recordings/2026/1/12/file.webm, we want /files/2026/1/12/file.webm
+                        let relative_path = path.strip_prefix(root_dir).unwrap_or(path);
+                        let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
+
+                        files.push(RecordingFile {
+                            path: format!("/files/{}", relative_path_str),
+                            name: entry.file_name().to_string_lossy().to_string(),
+                            is_transcript: ext_str == "txt" || ext_str == "json",
+                        });
+                    }
+                }
             }
         }
     }
@@ -351,7 +353,7 @@ async fn transcribe_audio(filepath: PathBuf) -> Result<(), Box<dyn std::error::E
                     } else {
                         clean_text
                     };
-                    
+
                     let clean_text = clean_text.trim_end_matches("```").trim();
 
                     // Save transcript
@@ -477,7 +479,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        // We can't easily verify the body content since it depends on the file system,
-        // but we verify the endpoint is reachable.
+        
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let body_json: serde_json::Value = serde_json::from_slice(&body).expect("Failed to parse JSON");
+        
+        assert!(body_json.is_array(), "Response should be a JSON array");
     }
 }
