@@ -75,21 +75,33 @@ async function loadRecordings() {
                     preview.textContent = 'Loading...';
                     colTitle.appendChild(preview);
                     
-                    const isJson = group.transcript.endsWith('.json');
-                    
                     fetch(group.transcript)
-                        .then(res => isJson ? res.json() : res.text())
-                        .then(data => {
+                        .then(res => res.text()) // Get text first
+                        .then(textData => {
+                            let data;
+                            try {
+                                data = JSON.parse(textData);
+                            } catch (e) {
+                                // Failed to parse directly, try cleaning markdown
+                                const cleanText = textData.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
+                                try {
+                                    data = JSON.parse(cleanText);
+                                } catch (e2) {
+                                    // Treat as legacy raw text
+                                    data = textData;
+                                }
+                            }
+
                             let title = '';
                             let fullText = '';
 
-                            if (isJson) {
+                            if (typeof data === 'object' && data !== null && (data.title || data.transcript)) {
                                 // Handle JSON format
                                 title = data.title || key;
                                 fullText = data.transcript || '';
                             } else {
                                 // Handle legacy text format
-                                const text = data as string;
+                                const text = String(data);
                                 const titleMatch = text.match(/^Title:\s*(.+)$/m);
                                 const transcriptMatch = text.match(/^Transcript:\s*([\s\S]+)$/m);
                                 

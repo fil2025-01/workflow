@@ -342,11 +342,23 @@ async fn transcribe_audio(filepath: PathBuf) -> Result<(), Box<dyn std::error::E
         if let Some(first_candidate) = candidates.first() {
             if let Some(first_part) = first_candidate.content.parts.first() {
                 if let Some(text) = &first_part.text {
+                    // Clean markdown code blocks if present
+                    let clean_text = text.trim();
+                    let clean_text = if clean_text.starts_with("```json") {
+                        &clean_text[7..]
+                    } else if clean_text.starts_with("```") {
+                        &clean_text[3..]
+                    } else {
+                        clean_text
+                    };
+                    
+                    let clean_text = clean_text.trim_end_matches("```").trim();
+
                     // Save transcript
                     let mut txt_path = filepath.clone();
                     txt_path.set_extension("json");
                     let mut txt_file = File::create(&txt_path)?;
-                    txt_file.write_all(text.as_bytes())?;
+                    txt_file.write_all(clean_text.as_bytes())?;
                     println!("Transcription saved to: {}", txt_path.display());
                     return Ok(());
                 }
