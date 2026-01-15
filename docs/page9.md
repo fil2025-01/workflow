@@ -1,4 +1,4 @@
-[Prev](./page8.md)
+[Prev](./page8.md) | [Next](./page10.md)
 
 # Template-Based Rendering
 
@@ -26,4 +26,4 @@ The `loadRecordings` function now utilizes the [Template API](https://developer.
 - **Performance**: Cloning templates is generally more efficient than repeated `document.createElement` and `innerHTML` assignments.
 - **Maintainability**: Designers or developers can modify the table layout in `index.html` without touching the TypeScript logic.
 
-[Prev](./page8.md)
+[Prev](./page8.md) | [Next](./page10.md)
