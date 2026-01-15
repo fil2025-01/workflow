@@ -63,20 +63,35 @@ async function loadRecordings() {
                     preview.className = 'transcript-preview';
                     preview.textContent = 'Loading...';
                     colTitle.appendChild(preview);
-                    fetch(group.transcript).then(res => res.text()).then(text => {
-                        const titleMatch = text.match(/^Title:\s*(.+)$/m);
-                        const transcriptMatch = text.match(/^Transcript:\s*([\s\S]+)$/m);
-                        if (titleMatch) {
-                            preview.textContent = titleMatch[1];
-                            if (transcriptMatch) {
-                                preview.title = transcriptMatch[1].trim();
-                            }
+                    const isJson = group.transcript.endsWith('.json');
+                    fetch(group.transcript)
+                        .then(res => isJson ? res.json() : res.text())
+                        .then(data => {
+                        let title = '';
+                        let fullText = '';
+                        if (isJson) {
+                            // Handle JSON format
+                            title = data.title || key;
+                            fullText = data.transcript || '';
                         }
                         else {
-                            preview.textContent = text.length > 50 ? text.substring(0, 50) + '...' : text;
-                            preview.title = text;
+                            // Handle legacy text format
+                            const text = data;
+                            const titleMatch = text.match(/^Title:\s*(.+)$/m);
+                            const transcriptMatch = text.match(/^Transcript:\s*([\s\S]+)$/m);
+                            if (titleMatch) {
+                                title = titleMatch[1];
+                                fullText = transcriptMatch ? transcriptMatch[1].trim() : text;
+                            }
+                            else {
+                                title = text.length > 50 ? text.substring(0, 50) + '...' : text;
+                                fullText = text;
+                            }
                         }
-                    }).catch(() => {
+                        preview.textContent = title;
+                        preview.title = fullText;
+                    })
+                        .catch(() => {
                         preview.textContent = key;
                     });
                 }

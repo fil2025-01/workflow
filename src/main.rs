@@ -118,24 +118,27 @@ async fn delete_recording(Json(payload): Json<DeleteRequest>) -> impl IntoRespon
     // Try to delete the file
     if fs::remove_file(&file_path).is_ok() {
         println!("Deleted file: {}", file_path.display());
-        
+
         // Also try to delete corresponding transcript if it exists
         // Check extension
         if let Some(ext) = file_path.extension() {
             let ext_str = ext.to_string_lossy();
-            if ext_str == "webm" {
-                let txt_path = file_path.with_extension("txt");
-                if txt_path.exists() {
-                    let _ = fs::remove_file(txt_path);
-                }
-            } else if ext_str == "txt" {
-                 let webm_path = file_path.with_extension("webm");
-                 if webm_path.exists() {
-                     let _ = fs::remove_file(webm_path);
-                 }
-            }
-        }
-        
+                        if ext_str == "webm" {
+                            let txt_path = file_path.with_extension("txt");
+                            let json_path = file_path.with_extension("json");
+                            if txt_path.exists() {
+                                let _ = fs::remove_file(txt_path);
+                            }
+                            if json_path.exists() {
+                                let _ = fs::remove_file(json_path);
+                            }
+                        } else if ext_str == "txt" || ext_str == "json" {
+                             let webm_path = file_path.with_extension("webm");
+                             if webm_path.exists() {
+                                 let _ = fs::remove_file(webm_path);
+                             }
+                        }        }
+
         StatusCode::OK
     } else {
         eprintln!("Failed to delete file: {}", file_path.display());
@@ -147,7 +150,7 @@ async fn delete_recording(Json(payload): Json<DeleteRequest>) -> impl IntoRespon
 async fn list_recordings(Query(filter): Query<DateFilter>) -> AxumJson<Vec<RecordingFile>> {
     let mut files = Vec::new();
     let root_dir = "recordings";
-    
+
     let target_dir = if let Some(date_str) = filter.date {
         // user provided date: YYYY-MM-DD
         if let Ok(date) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
@@ -169,24 +172,23 @@ async fn list_recordings(Query(filter): Query<DateFilter>) -> AxumJson<Vec<Recor
                 let path = entry.path();
                 if let Some(extension) = path.extension() {
                     let ext_str = extension.to_string_lossy();
-                    if ext_str == "webm" || ext_str == "txt" {
-                        // Create relative path for serving. 
-                        // Note: ServeDir is mounted at /files serving "recordings/"
-                        // So if file is recordings/2026/1/12/file.webm, we want /files/2026/1/12/file.webm
-                        let relative_path = path.strip_prefix(root_dir).unwrap_or(path);
-                        let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
-                        
-                        files.push(RecordingFile {
-                            path: format!("/files/{}", relative_path_str),
-                            name: entry.file_name().to_string_lossy().to_string(),
-                            is_transcript: ext_str == "txt",
-                        });
-                    }
-                }
+                                    if ext_str == "webm" || ext_str == "txt" || ext_str == "json" {
+                                        // Create relative path for serving. 
+                                        // Note: ServeDir is mounted at /files serving "recordings/"
+                                        // So if file is recordings/2026/1/12/file.webm, we want /files/2026/1/12/file.webm
+                                        let relative_path = path.strip_prefix(root_dir).unwrap_or(path);
+                                        let relative_path_str = relative_path.to_string_lossy().replace("\\", "/");
+                                        
+                                        files.push(RecordingFile {
+                                            path: format!("/files/{}", relative_path_str),
+                                            name: entry.file_name().to_string_lossy().to_string(),
+                                            is_transcript: ext_str == "txt" || ext_str == "json",
+                                        });
+                                    }                }
             }
         }
     }
-    
+
     // Sort files by name (timestamp)
     files.sort_by(|a, b| b.name.cmp(&a.name));
 
@@ -307,7 +309,7 @@ async fn transcribe_audio(filepath: PathBuf) -> Result<(), Box<dyn std::error::E
     let request_body = GenerateContentRequest {
         contents: vec![Content {
             parts: vec![
-                Part::Text { text: "Transcribe the following audio. Then, provide a short, clean, and descriptive title (max 6 words) summarizing the content. Format your response exactly like this:\nTitle: [Your Title]\nTranscript: [Full Transcription]".to_string() },
+                Part::Text { text: "Transcribe the following audio. Then, provide a short, clean, and descriptive title (max 6 words) summarizing the content. Return ONLY a raw JSON object (no markdown formatting) with the following structure:\n{\n  \"title\": \"Your Title\",\n  \"transcript\": \"Full Transcription\"\n}".to_string() },
                 Part::InlineData {
                     inline_data: InlineData {
                         mime_type: "audio/webm".to_string(),
@@ -342,7 +344,7 @@ async fn transcribe_audio(filepath: PathBuf) -> Result<(), Box<dyn std::error::E
                 if let Some(text) = &first_part.text {
                     // Save transcript
                     let mut txt_path = filepath.clone();
-                    txt_path.set_extension("txt");
+                    txt_path.set_extension("json");
                     let mut txt_file = File::create(&txt_path)?;
                     txt_file.write_all(text.as_bytes())?;
                     println!("Transcription saved to: {}", txt_path.display());
