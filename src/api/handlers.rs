@@ -75,9 +75,21 @@ pub async fn list_recordings(Query(filter): Query<DateFilter>) -> AxumJson<Vec<R
 }
 
 // Handler for uploading audio
-pub async fn upload_handler(mut multipart: Multipart) -> impl IntoResponse {
+pub async fn upload_handler(Query(filter): Query<DateFilter>, mut multipart: Multipart) -> impl IntoResponse {
     let now: DateTime<Local> = Local::now();
-    let upload_dir = format!("recordings/{}/{}/{}", now.year(), now.month(), now.day());
+    
+    // Determine the upload directory based on the optional date query param
+    let upload_dir = if let Some(date_str) = filter.date {
+        if let Ok(date) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+            format!("recordings/{}/{}/{}", date.year(), date.month(), date.day())
+        } else {
+            // Fallback to today if parsing fails
+            format!("recordings/{}/{}/{}", now.year(), now.month(), now.day())
+        }
+    } else {
+        // Default to today
+        format!("recordings/{}/{}/{}", now.year(), now.month(), now.day())
+    };
 
     if let Err(e) = fs::create_dir_all(&upload_dir) {
         eprintln!("Failed to create upload directory: {}", e);

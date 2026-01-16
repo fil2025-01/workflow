@@ -160,10 +160,12 @@ backBtn.addEventListener('click', () => {
 });
 // Reload on date change
 dateFilter.addEventListener('change', loadRecordings);
-recordBtn.addEventListener('click', async () => {
+
+// Helper function to handle recording logic
+async function handleRecording(button, includeDate = false) {
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         try {
-            console.log('mag record na');
+            console.log('Starting recording...');
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             mediaRecorder.ondataavailable = (event) => {
@@ -175,8 +177,14 @@ recordBtn.addEventListener('click', async () => {
                 audioChunks = [];
                 const formData = new FormData();
                 formData.append('file', audioBlob, 'recording.webm');
+                
+                let uploadUrl = '/upload';
+                if (includeDate && dateFilter.value) {
+                    uploadUrl += `?date=${dateFilter.value}`;
+                }
+
                 try {
-                    const response = await fetch('/upload', {
+                    const response = await fetch(uploadUrl, {
                         method: 'POST',
                         body: formData
                     });
@@ -193,8 +201,8 @@ recordBtn.addEventListener('click', async () => {
                 }
             };
             mediaRecorder.start();
-            recordBtn.textContent = 'Stop Recording';
-            recordBtn.classList.add('recording');
+            button.textContent = 'Stop Recording';
+            button.classList.add('recording');
         }
         catch (error) {
             console.error('Error accessing microphone:', error);
@@ -202,12 +210,28 @@ recordBtn.addEventListener('click', async () => {
         }
     }
     else {
-        console.log('wala pay na record');
+        console.log('Stopping recording...');
         if (mediaRecorder) {
             mediaRecorder.stop();
         }
-        recordBtn.textContent = 'Record Audio';
+        // Reset both buttons just in case
+        recordBtn.textContent = 'Record';
         recordBtn.classList.remove('recording');
+        
+        const contBtn = document.getElementById('recordBtnContinuation');
+        if (contBtn) {
+            contBtn.textContent = 'Continue Recording';
+            contBtn.classList.remove('recording');
+        }
+        
         audioChunks = [];
     }
-});
+}
+
+recordBtn.addEventListener('click', () => handleRecording(recordBtn, false));
+
+const recordBtnContinuation = document.getElementById('recordBtnContinuation');
+if (recordBtnContinuation) {
+    recordBtnContinuation.addEventListener('click', () => handleRecording(recordBtnContinuation, true));
+}
+
