@@ -1,3 +1,4 @@
+/* Base Styles */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
@@ -5,50 +6,11 @@ body {
     background-color: #ffffff;
     color: #333;
     box-sizing: border-box;
-    height: 100vh; /* Fixed viewport height */
-    overflow: hidden; /* Prevent body scroll */
+    height: 100vh;
+    overflow: hidden;
 }
 
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-}
-
-.btn, #recordBtn, #viewHistoryBtn, #backBtn {
-    padding: 6px 12px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    background-color: #0e639c;
-    color: white;
-    border: 1px solid transparent;
-    border-radius: 2px;
-    transition: background-color 0.15s ease-in-out;
-    margin-right: 8px;
-}
-
-.btn:hover, #recordBtn:hover, #viewHistoryBtn:hover, #backBtn:hover {
-    background-color: #1177bb;
-}
-
-#recordBtn.recording {
-    background-color: #d62525;
-    animation: pulse 2s infinite;
-}
-
-.flex-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e1e4e8;
-}
-
+/* Layout Components */
 .app-layout {
     display: flex;
     height: 100vh;
@@ -63,7 +25,7 @@ body {
     flex-direction: column;
     align-items: center;
     padding-top: 10px;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
 }
 
 .sidebar-icon {
@@ -73,31 +35,111 @@ body {
     background-color: #555;
     border-radius: 4px;
     cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .main-content {
     flex: 1;
     padding: 20px;
     background-color: #fff;
-    overflow-y: auto; /* Independent scroll */
+    overflow-y: auto;
 }
 
-.date-filter-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+/* Button Components */
+.btn {
+    padding: 6px 12px;
     font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background-color: #0e639c;
+    color: white;
+    border: 1px solid transparent;
+    border-radius: 6px; /* Increased from 2px for better consistency */
+    transition: background-color 0.15s ease-in-out;
 }
 
-.date-input {
-    padding: 4px 8px;
-    border: 1px solid #cecece;
-    border-radius: 2px;
-    font-size: 13px;
-    color: #333;
+.btn:hover {
+    background-color: #1177bb;
 }
 
-/* Table Styles */
+.btn-danger, .btn.recording {
+    background-color: #d62525;
+}
+
+.btn.recording {
+    animation: pulse 2s infinite;
+}
+
+/* Specific button overrides */
+.btn-lg {
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.btn-icon {
+    background: transparent;
+    color: #d62525;
+    border: none;
+    padding: 4px;
+    font-size: 12px;
+    border-radius: 4px; /* Added rounding to icon buttons too */
+}
+
+.btn-icon:hover {
+    text-decoration: underline;
+    background: transparent;
+}
+
+/* Toggle Switch Component */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #2196F3;
+}
+
+input:checked+.slider:before {
+    transform: translateX(14px);
+}
+
+/* Data Table Component */
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -115,7 +157,7 @@ body {
     background-color: #f3f3f3;
     font-weight: 600;
     color: #555;
-    position: sticky; /* Sticky Header */
+    position: sticky;
     top: 0;
     z-index: 1;
 }
@@ -139,25 +181,64 @@ body {
     vertical-align: middle;
 }
 
-.delete-btn {
-    background-color: transparent;
-    color: #d62525;
-    border: none;
-    cursor: pointer;
-    font-size: 12px;
-    padding: 4px;
+/* Utility Classes (Tailwind-like) */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
 }
 
-.delete-btn:hover {
-    text-decoration: underline;
-}
-
-/* Utilities */
-html, body { height: 100%; overflow: hidden; }
 .flex { display: flex; }
-.justify-center { justify-content: center; }
+.flex-col { flex-direction: column; }
+.flex-row { display: flex; flex-direction: row; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
 .items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.content-center { align-content: center; }
+
+.hidden { display: none; }
+.block { display: block; }
+
 .h-screen { height: 100vh; }
+.h-full { height: 100%; }
+.w-full { width: 100%; }
 .overflow-hidden { overflow: hidden; }
 .overflow-y-auto { overflow-y: auto; }
-.flex-1 { flex: 1; }
+
+.m-0 { margin: 0; }
+.ml-2 { margin-left: 0.5rem; }
+.ml-4 { margin-left: 1rem; }
+.mt-5 { margin-top: 1.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mr-2 { margin-right: 0.5rem; }
+.p-2 { padding: 0.5rem; }
+
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+
+.text-sm { font-size: 13px; }
+.text-lg { font-size: 1.125rem; }
+.text-gray-600 { color: #666; }
+.font-bold { font-weight: 700; }
+.cursor-pointer { cursor: pointer; }
+
+/* Rounding Utilities */
+.rounded { border-radius: 4px; }
+.rounded-md { border-radius: 6px; }
+.rounded-lg { border-radius: 8px; }
+.rounded-full { border-radius: 9999px; }
+
+/* Custom utility colors from original design */
+.border-b { border-bottom: 1px solid #e1e4e8; }
+.pb-2 { padding-bottom: 0.5rem; }
+
+/* Animations */
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(214, 37, 37, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(214, 37, 37, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(214, 37, 37, 0); }
+}

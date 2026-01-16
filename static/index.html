@@ -11,14 +11,14 @@
 <body>
   <div class="app-layout h-screen">
     <div class="sidebar">
-      <div class="sidebar-icon flex justify-center items-center" title="Explorer">
+      <div class="sidebar-icon" title="Explorer">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
           <polyline points="13 2 13 9 20 9"></polyline>
         </svg>
       </div>
-      <div class="sidebar-icon flex justify-center items-center" title="Search">
+      <div class="sidebar-icon" title="Search">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
@@ -26,25 +26,37 @@
         </svg>
       </div>
     </div>
-    <div class="main-content flex-1 overflow-y-auto">
+    <div class="main-content">
       <div id="recordingSection" class="container">
-        <h1>Audio Workflow</h1>
-        <div style="margin-top: 20px;">
-          <button id="recordBtn">Record Audio</button>
-          <button id="viewHistoryBtn">View Recordings</button>
+        <div class="flex flex-col flex-wrap content-center justify-center">
+          <h1>Audio Workflow</h1>
+          <div class="mt-5 flex gap-2 w-full" style="max-width: 300px;">
+            <button id="recordBtn" class="btn btn-lg flex-1">Record</button>
+            <button id="viewHistoryBtn" class="btn btn-lg flex-1">Recordings</button>
+          </div>
         </div>
       </div>
 
-      <div id="historySection" style="display: none;">
-        <h2 style="font-size: 18px; margin-bottom: 10px;">Recording History</h2>
-        <div class="flex-row">
-          <div style="display: flex; align-items: center;">
-            <button id="backBtn">Back</button>
-            <span id="statsLabel" style="font-size: 13px; color: #666; margin-left: 15px;">Total Recordings: 0</span>
+      <div id="historySection" class="hidden">
+        <h2 class="text-lg mb-2">Recording History</h2>
+        <div class="flex items-center justify-between mb-2 pb-2 border-b bg-cadetblue p-2">
+          <div class="flex items-center">
+            <button id="backBtn" class="btn mr-2 rounded-md">Back</button>
+            <span id="statsLabel" class="text-sm text-gray-600">Total Recordings: 0</span>
           </div>
-          <div class="date-filter-group">
-            <label for="dateFilter" class="date-label">Filter:</label>
-            <input type="date" id="dateFilter" class="date-input">
+          <div class="flex items-center">
+            <button id="recordBtnHistory" class="btn mr-2 rounded-md">Record Audio</button>
+            <div class="flex items-center bg-bisque p-2 rounded-md">
+              <label class="switch">
+                <input type="checkbox" id="toggleCheckbox">
+                <span class="slider"></span>
+              </label>
+              <label for="toggleCheckbox" class="text-sm ml-2 cursor-pointer">Toggle Option</label>
+            </div>
+          </div>
+          <div class="flex items-center text-sm gap-2">
+            <label for="dateFilter">Filter:</label>
+            <input type="date" id="dateFilter" class="p-2 border rounded-md">
           </div>
         </div>
         <div id="recordingsList">
@@ -77,13 +89,13 @@
         <audio controls style="height: 30px;"></audio>
       </td>
       <td class="col-action">
-        <button class="delete-btn">Delete</button>
+        <button class="btn-icon delete-btn">Delete</button>
       </td>
     </tr>
   </template>
 
   <template id="empty-template">
-    <p style="font-size: 13px; color: #666;">No recordings found.</p>
+    <p class="text-sm text-gray-600">No recordings found.</p>
   </template>
 
   <script src="/script.js"></script>

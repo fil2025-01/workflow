@@ -16,23 +16,23 @@ use api::handlers::{
 async fn main() {
     dotenv::dotenv().ok();
 
-    match std::env::var("GEMINI_API_KEY") {
+    match std::env::var("LOCAL_GEMINI_API_KEY") {
         Ok(key) => {
             let masked = if key.len() > 4 {
                 format!("...{}", &key[key.len()-4..])
             } else {
                 "****".to_string()
             };
-            println!("GEMINI_API_KEY loaded successfully: {}", masked);
+            println!("LOCAL_GEMINI_API_KEY loaded successfully: {}", masked);
         },
-        Err(_) => println!("GEMINI_API_KEY not found in environment or .env file"),
+        Err(_) => println!("LOCAL_GEMINI_API_KEY not found in environment or .env file"),
     }
 
     // Build our application with routes
     let app = create_app();
 
     // Define the address to listen on
-    let mut port = 3000;
+    let mut port = 4000;
     let listener = loop {
         let addr = format!("127.0.0.1:{}", port);
         match tokio::net::TcpListener::bind(&addr).await {
@@ -176,10 +176,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        
+
         let body = response.into_body().collect().await.unwrap().to_bytes();
         let body_json: serde_json::Value = serde_json::from_slice(&body).expect("Failed to parse JSON");
-        
+
         assert!(body_json.is_array(), "Response should be a JSON array");
     }
 }

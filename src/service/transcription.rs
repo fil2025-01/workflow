@@ -7,7 +7,7 @@ use crate::models::dtos::{
 };
 
 pub async fn transcribe_audio(filepath: PathBuf) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let api_key = std::env::var("GEMINI_API_KEY").map_err(|_| "GEMINI_API_KEY not set")?;
+    let api_key = std::env::var("LOCAL_GEMINI_API_KEY").map_err(|_| "LOCAL_GEMINI_API_KEY not set")?;
 
     // Read the file
     let mut file = File::open(&filepath)?;
