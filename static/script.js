@@ -12,19 +12,37 @@ const statsLabel = document.getElementById('statsLabel');
 const tableTemplate = document.getElementById('table-template');
 const rowTemplate = document.getElementById('row-template');
 const emptyTemplate = document.getElementById('empty-template');
+let pollingInterval = null;
+function ensurePolling() {
+    if (pollingInterval)
+        return;
+    console.log('Starting background polling for transcripts...');
+    pollingInterval = setInterval(() => {
+        // Only poll if we are actually looking at the history section
+        if (historySection.style.display !== 'none') {
+            loadRecordings();
+        }
+    }, 3000);
+}
+function stopPolling() {
+    if (pollingInterval) {
+        console.log('All transcriptions complete. Stopping poll.');
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+}
 async function loadRecordings() {
     try {
         const date = dateFilter.value;
-        let url = '/recordings';
+        let url = `/recordings?_t=${new Date().getTime()}`;
         if (date) {
-            url += `?date=${date}`;
+            url += `&date=${date}`;
         }
         const response = await fetch(url);
         const files = await response.json();
         recordingsList.innerHTML = '';
         // Group files by base name (timestamp)
         const groups = {};
-        let count = 0;
         files.forEach(file => {
             const baseName = file.name.replace(/\.[^/.]+$/, "");
             if (!groups[baseName]) {
@@ -38,8 +56,16 @@ async function loadRecordings() {
             }
         });
         const sortedKeys = Object.keys(groups).sort();
-        count = sortedKeys.filter(k => groups[k].audio).length;
+        const count = sortedKeys.filter(k => groups[k].audio).length;
         statsLabel.textContent = `Total Recordings: ${count}`;
+        // Check if any audio is missing a transcript
+        const hasPending = Object.values(groups).some(g => g.audio && !g.transcript);
+        if (hasPending) {
+            ensurePolling();
+        }
+        else {
+            stopPolling();
+        }
         if (count === 0) {
             const emptyNode = document.importNode(emptyTemplate.content, true);
             recordingsList.appendChild(emptyNode);
@@ -71,25 +97,21 @@ async function loadRecordings() {
                             data = JSON.parse(textData);
                         }
                         catch (e) {
-                            // Failed to parse directly, try cleaning markdown
                             const cleanText = textData.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
                             try {
                                 data = JSON.parse(cleanText);
                             }
                             catch (e2) {
-                                // Treat as legacy raw text
                                 data = textData;
                             }
                         }
                         let title = '';
                         let fullText = '';
                         if (typeof data === 'object' && data !== null && (data.title || data.transcript)) {
-                            // Handle JSON format
                             title = data.title || key;
                             fullText = data.transcript || '';
                         }
                         else {
-                            // Handle legacy text format
                             const text = String(data);
                             const titleMatch = text.match(/^Title:\s*(.+)$/m);
                             const transcriptMatch = text.match(/^Transcript:\s*([\s\S]+)$/m);
@@ -110,7 +132,11 @@ async function loadRecordings() {
                     });
                 }
                 else {
-                    colTitle.textContent = key;
+                    // If no transcript yet, show a processing state
+                    const span = document.createElement('span');
+                    span.className = 'text-gray-600 italic';
+                    span.textContent = 'Transcribing...';
+                    colTitle.appendChild(span);
                 }
                 // Audio
                 const colAudio = tr.querySelector('.col-audio audio');
@@ -156,12 +182,16 @@ viewHistoryBtn.addEventListener('click', () => {
 backBtn.addEventListener('click', () => {
     historySection.style.display = 'none';
     recordingSection.style.display = 'flex';
+    stopPolling(); // Stop polling when leaving history view
     window.scrollTo(0, 0);
 });
 // Reload on date change
 dateFilter.addEventListener('change', loadRecordings);
-
-// Helper function to handle recording logic
+/**
+ * Helper function to handle recording logic for both standard and continuation buttons.
+ * @param button The button element that triggered the recording.
+ * @param includeDate Whether to append the selected date filter to the upload request.
+ */
 async function handleRecording(button, includeDate = false) {
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         try {
@@ -170,19 +200,16 @@ async function handleRecording(button, includeDate = false) {
             mediaRecorder = new MediaRecorder(stream);
             mediaRecorder.ondataavailable = (event) => {
                 audioChunks.push(event.data);
-                console.log('data available', event.data);
             };
             mediaRecorder.onstop = async () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 audioChunks = [];
                 const formData = new FormData();
                 formData.append('file', audioBlob, 'recording.webm');
-                
                 let uploadUrl = '/upload';
                 if (includeDate && dateFilter.value) {
                     uploadUrl += `?date=${dateFilter.value}`;
                 }
-
                 try {
                     const response = await fetch(uploadUrl, {
                         method: 'POST',
@@ -190,7 +217,7 @@ async function handleRecording(button, includeDate = false) {
                     });
                     if (response.ok) {
                         console.log('Audio uploaded successfully');
-                        loadRecordings(); // Refresh list
+                        loadRecordings();
                     }
                     else {
                         console.error('Failed to upload audio');
@@ -206,32 +233,25 @@ async function handleRecording(button, includeDate = false) {
         }
         catch (error) {
             console.error('Error accessing microphone:', error);
-            return;
         }
     }
     else {
         console.log('Stopping recording...');
-        if (mediaRecorder) {
-            mediaRecorder.stop();
-        }
-        // Reset both buttons just in case
+        mediaRecorder.stop();
+        // Reset standard button
         recordBtn.textContent = 'Record';
         recordBtn.classList.remove('recording');
-        
+        // Reset continuation button if it exists
         const contBtn = document.getElementById('recordBtnContinuation');
         if (contBtn) {
             contBtn.textContent = 'Continue Recording';
             contBtn.classList.remove('recording');
         }
-        
         audioChunks = [];
     }
 }
-
 recordBtn.addEventListener('click', () => handleRecording(recordBtn, false));
-
 const recordBtnContinuation = document.getElementById('recordBtnContinuation');
 if (recordBtnContinuation) {
     recordBtnContinuation.addEventListener('click', () => handleRecording(recordBtnContinuation, true));
 }
-

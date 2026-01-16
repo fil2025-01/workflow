@@ -1,4 +1,4 @@
-[Prev](./page10.md)
+[Prev](./page10.md) | [Next](./page12.md)
 
 # Backend Refactoring: Separation of Concerns
 
@@ -28,4 +28,4 @@ src/
 - **Testability**: Logic is isolated, making unit testing easier (e.g., testing `transcription.rs` independently of HTTP handlers).
 - **Scalability**: New features can be added by creating new modules without cluttering `main.rs`.
 
-[Prev](./page10.md)
+[Prev](./page10.md) | [Next](./page12.md)

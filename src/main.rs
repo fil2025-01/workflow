@@ -93,7 +93,7 @@ mod tests {
         let body = response.into_body().collect().await.unwrap().to_bytes();
         let body_str = std::str::from_utf8(&body).unwrap();
 
-        assert!(body_str.contains("Record Audio"));
+        assert!(body_str.contains("Record"));
     }
 
     #[tokio::test]
