@@ -14,25 +14,11 @@ const tableTemplate = document.getElementById('table-template') as HTMLTemplateE
 const rowTemplate = document.getElementById('row-template') as HTMLTemplateElement;
 const emptyTemplate = document.getElementById('empty-template') as HTMLTemplateElement;
 
-let pollingInterval: number | null = null;
-
-function ensurePolling() {
-  if (pollingInterval) return;
-  console.log('Starting background polling for transcripts...');
-  pollingInterval = setInterval(() => {
-    // Only poll if we are actually looking at the history section
-    if (historySection.style.display !== 'none') {
-      loadRecordings();
-    }
-  }, 3000);
-}
-
-function stopPolling() {
-  if (pollingInterval) {
-    console.log('All transcriptions complete. Stopping poll.');
-    clearInterval(pollingInterval);
-    pollingInterval = null;
-  }
+interface Recording {
+  path: string;
+  name: string;
+  status: string;
+  transcription: any;
 }
 
 async function loadRecordings() {
@@ -44,37 +30,20 @@ async function loadRecordings() {
     }
 
     const response = await fetch(url);
-    const files: { path: string, name: string, is_transcript: boolean }[] = await response.json();
+    const recordings: Recording[] = await response.json();
 
     recordingsList.innerHTML = '';
+    statsLabel.textContent = `Total Recordings: ${recordings.length}`;
 
-    // Group files by base name (timestamp)
-    const groups: { [key: string]: { audio?: string, transcript?: string } } = {};
-    files.forEach(file => {
-      const baseName = file.name.replace(/\.[^/.]+$/, "");
-      if (!groups[baseName]) {
-        groups[baseName] = {};
-      }
-      if (file.is_transcript) {
-        groups[baseName].transcript = file.path;
-      } else {
-        groups[baseName].audio = file.path;
-      }
-    });
-
-    const sortedKeys = Object.keys(groups).sort();
-    const count = sortedKeys.filter(k => groups[k].audio).length;
-    statsLabel.textContent = `Total Recordings: ${count}`;
-
-    // Check if any audio is missing a transcript
-    const hasPending = Object.values(groups).some(g => g.audio && !g.transcript);
+    // Check if any recording is still transcribing
+    const hasPending = recordings.some(r => r.status === 'PENDING');
     if (hasPending) {
       ensurePolling();
     } else {
       stopPolling();
     }
 
-    if (count === 0) {
+    if (recordings.length === 0) {
       const emptyNode = document.importNode(emptyTemplate.content, true);
       recordingsList.appendChild(emptyNode);
       return;
@@ -82,103 +51,94 @@ async function loadRecordings() {
 
     const tableNode = document.importNode(tableTemplate.content, true);
     const tbody = tableNode.querySelector('tbody') as HTMLTableSectionElement;
-    let index = 1;
 
-    for (const key of sortedKeys) {
-      const group = groups[key];
-      if (group.audio) {
-        const rowNode = document.importNode(rowTemplate.content, true);
-        const tr = rowNode.querySelector('tr') as HTMLTableRowElement;
+    recordings.forEach((rec, index) => {
+      const rowNode = document.importNode(rowTemplate.content, true);
+      const tr = rowNode.querySelector('tr') as HTMLTableRowElement;
 
-        // No.
-        const colNo = tr.querySelector('.col-no') as HTMLTableCellElement;
-        colNo.textContent = index.toString();
+      // No.
+      (tr.querySelector('.col-no') as HTMLTableCellElement).textContent = (index + 1).toString();
 
-        // Title (Transcript or Name)
-        const colTitle = tr.querySelector('.col-title') as HTMLTableCellElement;
-        if (group.transcript) {
-          const preview = document.createElement('span');
-          preview.className = 'transcript-preview';
-          preview.textContent = 'Loading...';
-          colTitle.appendChild(preview);
+      // Title/Transcription
+      const colTitle = tr.querySelector('.col-title') as HTMLTableCellElement;
+      if (rec.transcription) {
+        const preview = document.createElement('span');
+        preview.className = 'transcript-preview cursor-pointer';
+        
+        let title = '';
+        let fullText = '';
 
-          fetch(group.transcript)
-            .then(res => res.text()) // Get text first
-            .then(textData => {
-              let data;
-              try {
-                data = JSON.parse(textData);
-              } catch (e) {
-                const cleanText = textData.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
-                try {
-                  data = JSON.parse(cleanText);
-                } catch (e2) {
-                  data = textData;
-                }
-              }
-
-              let title = '';
-              let fullText = '';
-
-              if (typeof data === 'object' && data !== null && (data.title || data.transcript)) {
-                title = data.title || key;
-                fullText = data.transcript || '';
-              } else {
-                const text = String(data);
-                const titleMatch = text.match(/^Title:\s*(.+)$/m);
-                const transcriptMatch = text.match(/^Transcript:\s*([\s\S]+)$/m);
-
-                if (titleMatch) {
-                  title = titleMatch[1];
-                  fullText = transcriptMatch ? transcriptMatch[1].trim() : text;
-                } else {
-                  title = text.length > 50 ? text.substring(0, 50) + '...' : text;
-                  fullText = text;
-                }
-              }
-
-              preview.textContent = title;
-              preview.title = fullText;
-            })
-            .catch(() => {
-              preview.textContent = key;
-            });
+        if (typeof rec.transcription === 'object' && rec.transcription !== null) {
+          title = rec.transcription.title || rec.name;
+          fullText = rec.transcription.transcript || '';
         } else {
-          // If no transcript yet, show a processing state
-          const span = document.createElement('span');
-          span.className = 'text-gray-600 italic';
-          span.textContent = 'Transcribing...';
-          colTitle.appendChild(span);
+          title = rec.name;
         }
 
-        // Audio
-        const colAudio = tr.querySelector('.col-audio audio') as HTMLAudioElement;
-        colAudio.src = group.audio;
-
-        // Action
-        const deleteBtn = tr.querySelector('.delete-btn') as HTMLButtonElement;
-        deleteBtn.addEventListener('click', async () => {
-          if (confirm('Delete this recording?')) {
-            try {
-              const res = await fetch('/recordings', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ path: group.audio || group.transcript })
-              });
-              if (res.ok) loadRecordings();
-            } catch (err) { console.error(err); }
-          }
-        });
-
-        tbody.appendChild(tr);
-        index++;
+        preview.textContent = title;
+        preview.title = fullText;
+        colTitle.appendChild(preview);
+      } else {
+        colTitle.textContent = rec.name;
       }
-    }
+
+      // Status
+      const colStatus = tr.querySelector('.col-status') as HTMLTableCellElement;
+      colStatus.textContent = rec.status;
+      if (rec.status === 'PENDING') {
+        colStatus.classList.add('text-gray-600', 'italic');
+        colStatus.textContent = 'Transcribing...';
+      } else if (rec.status === 'FAILED') {
+        colStatus.classList.add('text-red-600');
+      }
+
+      // Audio
+      const colAudio = tr.querySelector('.col-audio audio') as HTMLAudioElement;
+      colAudio.src = rec.path;
+
+      // Action
+      const deleteBtn = tr.querySelector('.delete-btn') as HTMLButtonElement;
+      deleteBtn.addEventListener('click', async () => {
+        if (confirm('Delete this recording?')) {
+          try {
+            const res = await fetch('/recordings', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: rec.path })
+            });
+            if (res.ok) loadRecordings();
+          } catch (err) { console.error(err); }
+        }
+      });
+
+      tbody.appendChild(tr);
+    });
+
     recordingsList.appendChild(tableNode);
 
   } catch (error) {
     console.error('Error loading recordings:', error);
     recordingsList.innerHTML = '<p>Error loading data.</p>';
+  }
+}
+
+let pollingInterval: any = null;
+
+function ensurePolling() {
+  if (pollingInterval) return;
+  console.log('Starting background polling for transcripts...');
+  pollingInterval = setInterval(() => {
+    if (historySection.style.display !== 'none') {
+      loadRecordings();
+    }
+  }, 3000);
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    console.log('All transcriptions complete. Stopping poll.');
+    clearInterval(pollingInterval);
+    pollingInterval = null;
   }
 }
 
@@ -196,18 +156,13 @@ viewHistoryBtn.addEventListener('click', () => {
 backBtn.addEventListener('click', () => {
   historySection.style.display = 'none';
   recordingSection.style.display = 'flex';
-  stopPolling(); // Stop polling when leaving history view
+  stopPolling();
   window.scrollTo(0, 0);
 });
 
 // Reload on date change
 dateFilter.addEventListener('change', loadRecordings);
 
-/**
- * Helper function to handle recording logic for both standard and continuation buttons.
- * @param button The button element that triggered the recording.
- * @param includeDate Whether to append the selected date filter to the upload request.
- */
 async function handleRecording(button: HTMLButtonElement, includeDate: boolean = false) {
   if (!mediaRecorder || mediaRecorder.state === 'inactive') {
     try {
@@ -254,11 +209,9 @@ async function handleRecording(button: HTMLButtonElement, includeDate: boolean =
     console.log('Stopping recording...');
     mediaRecorder.stop();
     
-    // Reset standard button
     recordBtn.textContent = 'Record';
     recordBtn.classList.remove('recording');
 
-    // Reset continuation button if it exists
     const contBtn = document.getElementById('recordBtnContinuation') as HTMLButtonElement | null;
     if (contBtn) {
       contBtn.textContent = 'Continue Recording';

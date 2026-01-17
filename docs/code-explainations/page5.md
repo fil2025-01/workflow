@@ -1,80 +1,34 @@
-use axum::{
-    extract::{Query, Json, State, Multipart},
-    response::{Html, IntoResponse, Json as AxumJson},
-    http::StatusCode,
-};
-use std::fs;
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
-use chrono::{DateTime, Local, Datelike, NaiveDate};
-use sqlx::PgPool;
-use crate::models::dtos::{DateFilter, RecordingFile, DeleteRequest};
-use crate::service::transcription::transcribe_audio;
+# Explanation of `upload_handler` in `src/api/handlers.rs`
 
-// Handler that returns HTML
-pub async fn handler() -> Html<&'static str> {
-    Html(include_str!("../../static/index.html"))
-}
+This document provides a detailed, line-by-line explanation of the `upload_handler` function, which is responsible for handling audio file uploads, saving them to disk, and initiating the transcription process.
 
-// Handler that returns CSS
-pub async fn style_handler() -> impl IntoResponse {
-    ([("content-type", "text/css")], include_str!("../../static/style.css"))
-}
+## Function Signature
 
-// Handler that returns JS
-pub async fn script_handler() -> impl IntoResponse {
-    ([("content-type", "text/javascript")], include_str!("../../static/script.js"))
-}
-
-// Handler to list recordings (optionally filtered by date)
-pub async fn list_recordings(
-    State(pool): State<PgPool>,
-    Query(filter): Query<DateFilter>
-) -> impl IntoResponse {
-    let date_str = filter.date.unwrap_or_else(|| Local::now().format("%Y-%m-%d").to_string());
-
-    // Parse date_str to NaiveDate for SQL query
-    let query_date = match NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
-        Ok(d) => d,
-        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
-    };
-
-    let recordings = sqlx::query_as!(
-        RecordingFile,
-        r#"
-        SELECT
-            '/files/' || file_path as "path!",
-            filename as "name!",
-            transcription_status as "status!",
-            transcription_text as "transcription"
-        FROM recordings
-        WHERE date(created_at) = $1
-        ORDER BY created_at DESC
-        "#,
-        query_date
-    )
-    .fetch_all(&pool)
-    .await;
-
-    match recordings {
-        Ok(files) => AxumJson(files).into_response(),
-        Err(e) => {
-            eprintln!("Database error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    }
-}
-
-// Handler for uploading audio
+```rust
 pub async fn upload_handler(
     State(pool): State<PgPool>,
     Query(filter): Query<DateFilter>,
     mut multipart: Multipart
 ) -> impl IntoResponse {
-    let now: DateTime<Local> = Local::now();
+```
 
+-   `pub async fn upload_handler`: Defines a public asynchronous function named `upload_handler`.
+-   `State(pool): State<PgPool>`: Extracts the PostgreSQL connection pool from the application state. This allows the handler to interact with the database.
+-   `Query(filter): Query<DateFilter>`: Extracts query parameters into a `DateFilter` struct. This is used to optionally determine the date associated with the recording (e.g., for organization).
+-   `mut multipart: Multipart`: Extracts the request body as a multipart stream, allowing the function to process file uploads.
+-   `-> impl IntoResponse`: Returns a type that implements `IntoResponse`, which Axum converts into an HTTP response.
+
+## Function Body
+
+```rust
+    let now: DateTime<Local> = Local::now();
+```
+
+-   Captures the current local date and time. This is used as a fallback if no specific date is provided in the query parameters.
+
+### Determining the Directory
+
+```rust
     // Determine the upload directory based on the optional date query param
     let (year, month, day) = if let Some(date_str) = filter.date.clone() {
         if let Ok(date) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
@@ -85,7 +39,14 @@ pub async fn upload_handler(
     } else {
         (now.year(), now.month(), now.day())
     };
+```
 
+-   This block determines the year, month, and day to be used for the file path.
+-   It checks if `filter.date` (from the query string) is present.
+-   If present, it attempts to parse it as a date ("YYYY-MM-DD"). If successful, it uses that date.
+-   If the date is missing or invalid, it defaults to the current date (`now`).
+
+```rust
     let relative_dir = format!("{}/{}/{}", year, month, day);
     let upload_dir = format!("recordings/{}", relative_dir);
 
@@ -93,11 +54,26 @@ pub async fn upload_handler(
         eprintln!("Failed to create upload directory: {}", e);
         return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     }
+```
 
+-   `relative_dir`: Constructs a relative path string (e.g., "2023/10/27").
+-   `upload_dir`: Prepends "recordings/" to the relative path to get the full storage directory.
+-   `fs::create_dir_all(&upload_dir)`: Recursively creates the directory structure if it doesn't exist.
+-   If directory creation fails, it logs the error and returns a `500 Internal Server Error`.
+
+### Processing Multipart Fields
+
+```rust
     while let Ok(Some(field)) = multipart.next_field().await {
         let name = field.name().unwrap_or("unknown").to_string();
 
         if name == "file" {
+```
+
+-   Iterates through the fields in the multipart form data asynchronously.
+-   Checks if the field name is "file", which is expected to contain the audio data.
+
+```rust
             let file_name = field.file_name().unwrap_or("").to_string();
             if let Ok(data) = field.bytes().await {
                 let timestamp = SystemTime::now()
@@ -111,11 +87,30 @@ pub async fn upload_handler(
 
                 let filepath_in_db = format!("{}/{}", relative_dir, filename);
                 let full_filepath = Path::new(&upload_dir).join(&filename);
+```
 
+-   `field.bytes().await`: Reads the raw bytes of the uploaded file.
+-   `timestamp`: Generates a UNIX timestamp to ensure unique filenames.
+-   `prefix`: Preserves a "test_" prefix if present in the original filename (useful for testing/cleanup).
+-   `filename`: Constructs the new filename using the prefix and timestamp (e.g., "recording_1698412345.webm").
+-   `filepath_in_db`: The path string to be stored in the database.
+-   `full_filepath`: The actual filesystem path where the file will be saved.
+
+### Saving the File
+
+```rust
                 if let Ok(mut file) = File::create(&full_filepath) {
                     if file.write_all(&data).is_ok() {
                         println!("Saved file: {}", full_filepath.display());
+```
 
+-   `File::create`: Creates the file at the specified path.
+-   `file.write_all`: writes the byte data to the file.
+-   If successful, prints a confirmation message.
+
+### Database Insertion
+
+```rust
                         // Insert into database
                         let res = sqlx::query!(
                             r#"
@@ -133,7 +128,15 @@ pub async fn upload_handler(
                         )
                         .fetch_one(&pool)
                         .await;
+```
 
+-   Executes an SQL `INSERT` query to add the recording metadata to the `recordings` table.
+-   `created_at`: Uses the provided date filter (set to noon) if available, otherwise uses the current time.
+-   `RETURNING id`: Returns the generated ID of the new record.
+
+### Spawning Transcription
+
+```rust
                         match res {
                             Ok(record) => {
                                 // Spawn transcription task
@@ -152,6 +155,20 @@ pub async fn upload_handler(
                                 return StatusCode::INTERNAL_SERVER_ERROR.into_response();
                             }
                         }
+```
+
+-   Matches on the result of the database insertion.
+-   **On Success (`Ok(record)`)**:
+    -   Clones the connection pool and file path for the background task.
+    -   `tokio::spawn`: Starts a background asynchronous task to transcribe the audio. This prevents the HTTP request from blocking while transcription (which can be slow) occurs.
+    -   Calls `transcribe_and_update` inside the spawned task.
+-   **On Failure (`Err(e)`)**:
+    -   Logs the database error.
+    -   Returns a 500 Internal Server Error.
+
+### Error Handling for File Operations
+
+```rust
                     } else {
                         eprintln!("Failed to write to file: {}", full_filepath.display());
                         return StatusCode::INTERNAL_SERVER_ERROR.into_response();
@@ -165,57 +182,8 @@ pub async fn upload_handler(
     }
     StatusCode::OK.into_response()
 }
+```
 
-// Helper function to transcribe and update the database
-async fn transcribe_and_update(pool: PgPool, id: sqlx::types::uuid::Uuid, path: std::path::PathBuf) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let transcription_text = transcribe_audio(path.clone()).await?;
-    let json_value: serde_json::Value = serde_json::from_str(&transcription_text)?;
-
-    sqlx::query!(
-        r#"
-        UPDATE recordings
-        SET transcription_text = $1, transcription_status = 'COMPLETED'
-        WHERE id = $2
-        "#,
-        json_value,
-        id
-    )
-    .execute(&pool)
-    .await?;
-
-    Ok(())
-}
-
-// Handler to delete a recording
-pub async fn delete_recording(
-    State(pool): State<PgPool>,
-    Json(payload): Json<DeleteRequest>
-) -> impl IntoResponse {
-    if !payload.path.starts_with("/files/") || payload.path.contains("..") {
-        return StatusCode::BAD_REQUEST;
-    }
-
-    let relative_path = &payload.path["/files/".len()..];
-
-    // Delete from DB first
-    let res = sqlx::query!(
-        "DELETE FROM recordings WHERE file_path = $1 RETURNING id",
-        relative_path
-    )
-    .fetch_optional(&pool)
-    .await;
-
-    match res {
-        Ok(Some(_)) => {
-            // Delete from disk
-            let file_path = Path::new("recordings").join(relative_path);
-            let _ = fs::remove_file(&file_path);
-            StatusCode::OK
-        },
-        Ok(None) => StatusCode::NOT_FOUND,
-        Err(e) => {
-            eprintln!("DB error on delete: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        }
-    }
-}
+-   The `else` blocks handle failures for writing to the file or creating the file, returning 500 errors in those cases.
+-   After processing the loop (or if no file was found in the current field), the function completes.
+-   `StatusCode::OK.into_response()`: Returns a 200 OK status to the client, indicating the upload request was processed (though transcription happens in the background).

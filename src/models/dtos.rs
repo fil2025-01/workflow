@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize)]
+#[derive(Serialize, sqlx::FromRow)]
 pub struct RecordingFile {
     pub path: String,
     pub name: String,
-    pub is_transcript: bool,
+    pub status: String,
+    pub transcription: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]

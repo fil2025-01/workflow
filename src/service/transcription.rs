@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 use base64::{Engine as _, engine::general_purpose};
 use crate::models::dtos::{
     GenerateContentRequest, Content, Part, InlineData, GenerateContentResponse
 };
 
-pub async fn transcribe_audio(filepath: PathBuf) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn transcribe_audio(filepath: PathBuf) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let api_key = std::env::var("LOCAL_GEMINI_API_KEY").map_err(|_| "LOCAL_GEMINI_API_KEY not set")?;
 
     // Read the file
@@ -65,14 +65,7 @@ pub async fn transcribe_audio(filepath: PathBuf) -> Result<(), Box<dyn std::erro
                     };
                     
                     let clean_text = clean_text.trim_end_matches("```").trim();
-
-                    // Save transcript
-                    let mut txt_path = filepath.clone();
-                    txt_path.set_extension("json");
-                    let mut txt_file = File::create(&txt_path)?;
-                    txt_file.write_all(clean_text.as_bytes())?;
-                    println!("Transcription saved to: {}", txt_path.display());
-                    return Ok(());
+                    return Ok(clean_text.to_string());
                 }
             }
         }
