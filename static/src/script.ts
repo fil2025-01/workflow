@@ -15,13 +15,55 @@ const rowTemplate = document.getElementById('row-template') as HTMLTemplateEleme
 const emptyTemplate = document.getElementById('empty-template') as HTMLTemplateElement;
 
 interface Recording {
+  id: string;
   path: string;
   name: string;
   status: string;
   transcription: any;
+  group_id?: string;
+}
+
+interface TaskGroup {
+  id: string;
+  name: string;
+  description: string;
+  ordering: number;
+}
+
+let availableGroups: TaskGroup[] = [];
+
+async function loadGroups() {
+  try {
+    const response = await fetch('/groups');
+    if (response.ok) {
+      availableGroups = await response.json();
+    }
+  } catch (error) {
+    console.error('Error loading groups:', error);
+  }
+}
+
+async function updateRecordingGroup(recordingId: string, groupId: string) {
+  try {
+    const response = await fetch(`/recordings/${recordingId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group_id: groupId })
+    });
+    if (!response.ok) {
+      console.error('Failed to update group');
+    }
+  } catch (error) {
+    console.error('Error updating group:', error);
+  }
 }
 
 async function loadRecordings() {
+  // Ensure groups are loaded first
+  if (availableGroups.length === 0) {
+    await loadGroups();
+  }
+
   try {
     const date = dateFilter.value;
     let url = `/recordings?_t=${new Date().getTime()}`;
@@ -91,6 +133,34 @@ async function loadRecordings() {
       } else if (rec.status === 'FAILED') {
         colStatus.classList.add('text-red-600');
       }
+
+      // Group Dropdown
+      const colGroup = tr.querySelector('.col-group') as HTMLTableCellElement;
+      const select = document.createElement('select');
+      select.className = 'p-1 border rounded text-sm';
+      
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = 'Select Group';
+      select.appendChild(defaultOption);
+
+      availableGroups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group.id;
+        option.textContent = group.name;
+        option.title = group.description; // Tooltip for description
+        if (rec.group_id === group.id) {
+          option.selected = true;
+        }
+        select.appendChild(option);
+      });
+
+      select.addEventListener('change', (e) => {
+        const target = e.target as HTMLSelectElement;
+        updateRecordingGroup(rec.id, target.value);
+      });
+      colGroup.appendChild(select);
+
 
       // Audio
       const colAudio = tr.querySelector('.col-audio audio') as HTMLAudioElement;

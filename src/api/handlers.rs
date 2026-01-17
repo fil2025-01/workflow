@@ -1,16 +1,16 @@
 use axum::{
-    extract::{Query, Json, State, Multipart},
+    extract::{Query, Json, State, Multipart, Path},
     response::{Html, IntoResponse, Json as AxumJson},
     http::StatusCode,
 };
 use std::fs;
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path as FilePath};
 use std::time::{SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Local, Datelike, NaiveDate};
 use sqlx::PgPool;
-use crate::models::dtos::{DateFilter, RecordingFile, DeleteRequest};
+use crate::models::dtos::{DateFilter, RecordingFile, DeleteRequest, TaskGroup, UpdateRecordingRequest};
 use crate::service::transcription::transcribe_audio;
 
 // Handler that returns HTML
@@ -26,6 +26,47 @@ pub async fn style_handler() -> impl IntoResponse {
 // Handler that returns JS
 pub async fn script_handler() -> impl IntoResponse {
     ([("content-type", "text/javascript")], include_str!("../../static/js/script.js"))
+}
+
+// Handler to get task groups
+pub async fn get_groups(State(pool): State<PgPool>) -> impl IntoResponse {
+    let groups = sqlx::query_as!(
+        TaskGroup,
+        "SELECT id, name, description, ordering FROM task_groups ORDER BY ordering ASC"
+    )
+    .fetch_all(&pool)
+    .await;
+
+    match groups {
+        Ok(groups) => AxumJson(groups).into_response(),
+        Err(e) => {
+            eprintln!("Database error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+}
+
+// Handler to update a recording (e.g. set group)
+pub async fn update_recording(
+    State(pool): State<PgPool>,
+    Path(id): Path<sqlx::types::uuid::Uuid>,
+    Json(payload): Json<UpdateRecordingRequest>
+) -> impl IntoResponse {
+    let res = sqlx::query!(
+        "UPDATE recordings SET group_id = $1 WHERE id = $2",
+        payload.group_id,
+        id
+    )
+    .execute(&pool)
+    .await;
+
+    match res {
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(e) => {
+            eprintln!("Database error on update: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
 }
 
 // Handler to list recordings (optionally filtered by date)
@@ -45,10 +86,12 @@ pub async fn list_recordings(
         RecordingFile,
         r#"
         SELECT
+            id,
             '/files/' || file_path as "path!",
             filename as "name!",
             transcription_status as "status!",
-            transcription_text as "transcription"
+            transcription_text as "transcription",
+            group_id
         FROM recordings
         WHERE date(created_at) = $1
         ORDER BY created_at DESC
@@ -110,7 +153,7 @@ pub async fn upload_handler(
                 let filename = format!("{}recording_{}.webm", prefix, timestamp);
 
                 let filepath_in_db = format!("{}/{}", relative_dir, filename);
-                let full_filepath = Path::new(&upload_dir).join(&filename);
+                let full_filepath = FilePath::new(&upload_dir).join(&filename);
 
                 if let Ok(mut file) = File::create(&full_filepath) {
                     if file.write_all(&data).is_ok() {
@@ -208,7 +251,7 @@ pub async fn delete_recording(
     match res {
         Ok(Some(_)) => {
             // Delete from disk
-            let file_path = Path::new("recordings").join(relative_path);
+            let file_path = FilePath::new("recordings").join(relative_path);
             let _ = fs::remove_file(&file_path);
             StatusCode::OK
         },

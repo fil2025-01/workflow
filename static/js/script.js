@@ -12,7 +12,38 @@ const statsLabel = document.getElementById('statsLabel');
 const tableTemplate = document.getElementById('table-template');
 const rowTemplate = document.getElementById('row-template');
 const emptyTemplate = document.getElementById('empty-template');
+let availableGroups = [];
+async function loadGroups() {
+    try {
+        const response = await fetch('/groups');
+        if (response.ok) {
+            availableGroups = await response.json();
+        }
+    }
+    catch (error) {
+        console.error('Error loading groups:', error);
+    }
+}
+async function updateRecordingGroup(recordingId, groupId) {
+    try {
+        const response = await fetch(`/recordings/${recordingId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ group_id: groupId })
+        });
+        if (!response.ok) {
+            console.error('Failed to update group');
+        }
+    }
+    catch (error) {
+        console.error('Error updating group:', error);
+    }
+}
 async function loadRecordings() {
+    // Ensure groups are loaded first
+    if (availableGroups.length === 0) {
+        await loadGroups();
+    }
     try {
         const date = dateFilter.value;
         let url = `/recordings?_t=${new Date().getTime()}`;
@@ -74,6 +105,29 @@ async function loadRecordings() {
             else if (rec.status === 'FAILED') {
                 colStatus.classList.add('text-red-600');
             }
+            // Group Dropdown
+            const colGroup = tr.querySelector('.col-group');
+            const select = document.createElement('select');
+            select.className = 'p-1 border rounded text-sm';
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Select Group';
+            select.appendChild(defaultOption);
+            availableGroups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                option.title = group.description; // Tooltip for description
+                if (rec.group_id === group.id) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            select.addEventListener('change', (e) => {
+                const target = e.target;
+                updateRecordingGroup(rec.id, target.value);
+            });
+            colGroup.appendChild(select);
             // Audio
             const colAudio = tr.querySelector('.col-audio audio');
             colAudio.src = rec.path;

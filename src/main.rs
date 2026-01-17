@@ -1,5 +1,5 @@
 use axum::{
-    routing::{get, post},
+    routing::{get, post, patch},
     Router,
     extract::FromRef,
 };
@@ -11,7 +11,7 @@ mod service;
 mod models;
 
 use api::handlers::{
-    handler, upload_handler, list_recordings, style_handler, script_handler, delete_recording
+    handler, upload_handler, list_recordings, style_handler, script_handler, delete_recording, get_groups, update_recording
 };
 
 #[derive(Clone)]
@@ -80,6 +80,8 @@ fn create_app(state: AppState) -> Router {
         .route("/", get(handler))
         .route("/upload", post(upload_handler))
         .route("/recordings", get(list_recordings).delete(delete_recording))
+        .route("/recordings/:id", patch(update_recording))
+        .route("/groups", get(get_groups))
         .nest_service("/files", ServeDir::new("recordings"))
         .route("/style.css", get(style_handler))
         .route("/script.js", get(script_handler))

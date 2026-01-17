@@ -1,11 +1,26 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, sqlx::FromRow)]
+pub struct TaskGroup {
+    pub id: sqlx::types::uuid::Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub ordering: i32,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
 pub struct RecordingFile {
+    pub id: sqlx::types::uuid::Uuid,
     pub path: String,
     pub name: String,
     pub status: String,
     pub transcription: Option<serde_json::Value>,
+    pub group_id: Option<sqlx::types::uuid::Uuid>,
+}
+
+#[derive(Deserialize)]
+pub struct DeleteRequest {
+    pub path: String,
 }
 
 #[derive(Deserialize)]
@@ -14,8 +29,8 @@ pub struct DateFilter {
 }
 
 #[derive(Deserialize)]
-pub struct DeleteRequest {
-    pub path: String,
+pub struct UpdateRecordingRequest {
+    pub group_id: Option<sqlx::types::uuid::Uuid>,
 }
 
 #[derive(Serialize)]
