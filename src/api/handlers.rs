@@ -25,7 +25,7 @@ pub async fn style_handler() -> impl IntoResponse {
 
 // Handler that returns JS
 pub async fn script_handler() -> impl IntoResponse {
-    ([("content-type", "text/javascript")], include_str!("../../static/script.js"))
+    ([("content-type", "text/javascript")], include_str!("../../static/js/script.js"))
 }
 
 // Handler to list recordings (optionally filtered by date)
