@@ -74,6 +74,9 @@ async function loadRecordings() {
     const response = await fetch(url);
     const recordings: Recording[] = await response.json();
 
+    // The backend returns newest-first. Reverse to display chronologically (oldest-first).
+    recordings.reverse();
+
     recordingsList.innerHTML = '';
     statsLabel.textContent = `Total Recordings: ${recordings.length}`;
 
@@ -106,7 +109,7 @@ async function loadRecordings() {
       if (rec.transcription) {
         const preview = document.createElement('span');
         preview.className = 'transcript-preview cursor-pointer';
-        
+
         let title = '';
         let fullText = '';
 
@@ -138,7 +141,7 @@ async function loadRecordings() {
       const colGroup = tr.querySelector('.col-group') as HTMLTableCellElement;
       const select = document.createElement('select');
       select.className = 'p-1 border rounded text-sm';
-      
+
       const defaultOption = document.createElement('option');
       defaultOption.value = '';
       defaultOption.textContent = 'Select Group';
@@ -165,6 +168,14 @@ async function loadRecordings() {
       // Audio
       const colAudio = tr.querySelector('.col-audio audio') as HTMLAudioElement;
       colAudio.src = rec.path;
+
+      // Time
+      const colTime = tr.querySelector('.col-time') as HTMLTableCellElement;
+      const match = rec.name.match(/_(\d+)\./);
+      if (colTime && match) {
+        const timestamp = parseInt(match[1]) * 1000;
+        colTime.textContent = new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      }
 
       // Action
       const deleteBtn = tr.querySelector('.delete-btn') as HTMLButtonElement;
@@ -278,7 +289,7 @@ async function handleRecording(button: HTMLButtonElement, includeDate: boolean =
   } else {
     console.log('Stopping recording...');
     mediaRecorder.stop();
-    
+
     recordBtn.textContent = 'Record';
     recordBtn.classList.remove('recording');
 
@@ -287,7 +298,7 @@ async function handleRecording(button: HTMLButtonElement, includeDate: boolean =
       contBtn.textContent = 'Continue Recording';
       contBtn.classList.remove('recording');
     }
-    
+
     audioChunks = [];
   }
 }

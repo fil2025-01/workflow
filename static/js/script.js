@@ -52,6 +52,8 @@ async function loadRecordings() {
         }
         const response = await fetch(url);
         const recordings = await response.json();
+        // The backend returns newest-first. Reverse to display chronologically (oldest-first).
+        recordings.reverse();
         recordingsList.innerHTML = '';
         statsLabel.textContent = `Total Recordings: ${recordings.length}`;
         // Check if any recording is still transcribing
@@ -131,6 +133,13 @@ async function loadRecordings() {
             // Audio
             const colAudio = tr.querySelector('.col-audio audio');
             colAudio.src = rec.path;
+            // Time
+            const colTime = tr.querySelector('.col-time');
+            const match = rec.name.match(/_(\d+)\./);
+            if (colTime && match) {
+                const timestamp = parseInt(match[1]) * 1000;
+                colTime.textContent = new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            }
             // Action
             const deleteBtn = tr.querySelector('.delete-btn');
             deleteBtn.addEventListener('click', async () => {
