@@ -164,7 +164,6 @@ async function loadRecordings() {
       });
       colGroup.appendChild(select);
 
-
       // Audio
       const colAudio = tr.querySelector('.col-audio audio') as HTMLAudioElement;
       colAudio.src = rec.path;
