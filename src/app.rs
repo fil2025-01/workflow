@@ -166,7 +166,11 @@ fn HomePage() -> impl IntoView {
             </span>
           </div>
           <div class="flex items-center">
-            <button id="recordBtnContinuation" class="btn mr-2 rounded-md">"Continue Recording"</button>
+            <RecordButton
+              class="btn mr-2 rounded-md"
+              label="Continue Recording"
+              on_success=Callback::new(move |_| recordings_resource.refetch())
+            />
           </div>
           <DateFilter on_change=move |date| {
             set_selected_date.set(Some(date));
