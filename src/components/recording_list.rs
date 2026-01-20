@@ -37,6 +37,22 @@ pub fn RecordingList(
               let rec_group_id = rec.group_id;
               let groups = groups.clone();
 
+              // Extract title and transcript from JSON
+              let (title, full_text) = match &rec.transcription {
+                Some(json) => {
+                  let title = json.get("title")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| rec.name.clone());
+                  let transcript = json.get("transcript")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+                  (title, transcript)
+                },
+                None => (rec.name.clone(), "".to_string())
+              };
+
               // Extract time from filename
               let time_str = {
                 let match_res = rec_name.match_indices('_').collect::<Vec<_>>();
@@ -58,7 +74,7 @@ pub fn RecordingList(
               view! {
                 <tr>
                   <td class="col-no">"?"</td> // Index needs careful handling in For
-                  <td class="col-title">{rec_name}</td>
+                  <td class="col-title" title=full_text>{title}</td>
                   <td class="col-status">{rec_status}</td>
                   <td class="col-group">
                     <TaskGroupSelector
