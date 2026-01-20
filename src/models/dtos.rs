@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct TaskGroup {
     pub id: Uuid,
@@ -10,7 +10,7 @@ pub struct TaskGroup {
     pub ordering: i32,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct RecordingFile {
     pub id: Uuid,
