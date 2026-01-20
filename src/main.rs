@@ -78,6 +78,7 @@ async fn main() {
 
         // Legacy UI
         .route("/legacy", get(handler))
+        .route("/legacy/", get(handler))
         .route("/style.css", get(style_handler))
         .route("/script.js", get(script_handler))
 
