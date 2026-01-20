@@ -160,6 +160,7 @@ fn HomePage() -> impl IntoView {
               on:click=move |_| set_view_history.set(false)>
               "Back"
             </button>
+            <a href="/legacy" class="btn mr-2 rounded-md">"Legacy UI"</a>
             <span id="statsLabel" class="text-sm text-gray-600">
               "Total Recordings: " {move || recordings.get().len()}
             </span>
