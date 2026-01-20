@@ -53,24 +53,24 @@ pub fn RecordingList(
                 None => (rec.name.clone(), "".to_string())
               };
 
-              // Extract time from filename
-              let time_str = {
-                let match_res = rec_name.match_indices('_').collect::<Vec<_>>();
-                if let Some(&(idx, _)) = match_res.last() {
-                  if let Some(dot_idx) = rec_name.find('.') {
-                    if idx < dot_idx {
-                      let ts_str = &rec_name[idx+1..dot_idx];
-                      if let Ok(ts) = ts_str.parse::<i64>() {
-                        // This is crude, but works for placeholder until better formatting
-                        format!("{}", ts)
-                      } else {
-                        "".to_string()
-                      }
-                    } else { "".to_string() }
-                  } else { "".to_string() }
-                } else { "".to_string() }
-              };
-
+                            // Extract time from filename
+                            let time_str = {
+                              let match_res = rec_name.match_indices('_').collect::<Vec<_>>();
+                              if let Some(&(idx, _)) = match_res.last() {
+                                if let Some(dot_idx) = rec_name.find('.') {
+                                  if idx < dot_idx {
+                                    let ts_str = &rec_name[idx+1..dot_idx];
+                                    if let Ok(ts) = ts_str.parse::<i64>() {
+                                      use chrono::{TimeZone, Local};
+                                      let datetime = Local.timestamp_opt(ts, 0).unwrap();
+                                      datetime.format("%I:%M %p").to_string()
+                                    } else {
+                                      "".to_string()
+                                    }
+                                  } else { "".to_string() }
+                                } else { "".to_string() }
+                              } else { "".to_string() }
+                            };
               view! {
                 <tr>
                   <td class="col-no">"?"</td> // Index needs careful handling in For
