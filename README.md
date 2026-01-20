@@ -13,6 +13,7 @@ A personal productivity tool for recording, transcribing, and organizing daily a
 *   **Time & Date Filtering**: Filter recordings by date and view them chronologically.
 *   **Persistent Storage**: Metadata and transcripts are stored in PostgreSQL; audio files are saved locally.
 *   **Modern UI**: Clean interface with real-time status updates and playback controls.
+*   **Isomorphic Rust**: Frontend and backend unified using [Leptos](https://leptos.dev).
 
 ## 🛠️ Tech Stack
 
@@ -23,15 +24,16 @@ A personal productivity tool for recording, transcribing, and organizing daily a
 *   **Async Runtime**: Tokio
 
 ### Frontend
-*   **Language**: TypeScript
-*   **Styling**: Custom CSS (Tailwind-inspired utility classes)
+*   **Framework**: [Leptos](https://leptos.dev) (Rust to WASM)
+*   **Styling**: Custom CSS
 
 ## 📋 Prerequisites
 
 *   **Rust**: `cargo` (latest stable)
-*   **Node.js**: `npm` (for TypeScript compilation)
 *   **PostgreSQL**: A running Postgres instance.
 *   **Gemini API Key**: For transcription services.
+*   **WASM Target**: `rustup target add wasm32-unknown-unknown`
+*   **Leptos CLI**: `cargo install cargo-leptos`
 
 ## ⚙️ Setup
 
@@ -61,39 +63,39 @@ A personal productivity tool for recording, transcribing, and organizing daily a
     # Or use the provided helper (if available/configured) or run the SQL files in /migrations manually.
     ```
 
-4.  **Frontend Build**:
-    Install dependencies and compile TypeScript:
-    ```bash
-    npm install
-    npm run build
-    ```
-
 ## 🚀 Usage
+
+### Development (Recommended)
+This compiles both the frontend (WASM) and backend, and watches for changes.
 
 1.  **Start the Server**:
     ```bash
-    cargo run
+    cargo leptos watch
     ```
-    The server will start on `http://localhost:4000` (or the next available port).
+    The server will start on `http://127.0.0.1:4000`.
 
 2.  **Open the Application**:
     Navigate to `http://localhost:4000` in your web browser.
+    *   **Leptos UI**: `http://localhost:4000`
+    *   **Legacy UI**: `http://localhost:4000/legacy` (if preserved)
 
-3.  **Workflow**:
-    *   Click **Record** to start a voice note.
-    *   Click **Stop** to save. The file is uploaded and transcription starts automatically.
-    *   Go to **Recordings** to view your history.
-    *   Use the **Group** dropdown to assign the task to a specific part of your day.
+### Running Only Backend (Legacy Mode)
+If you only want to run the backend and legacy static site without compiling WASM:
+
+```bash
+cargo run --features ssr
+```
 
 ## 📂 Project Structure
 
-*   `src/`: Rust backend source code.
+*   `src/`: Source code.
+    *   `app.rs`: Leptos frontend application.
+    *   `main.rs`: Axum server entry point.
+    *   `lib.rs`: Shared code and hydration entry point.
     *   `api/`: HTTP handlers.
     *   `models/`: Database structs and DTOs.
     *   `service/`: Business logic (transcription).
-*   `static/`: Frontend assets.
-    *   `src/`: TypeScript source.
-    *   `js/`: Compiled JavaScript.
+*   `static/`: Frontend assets (CSS, etc).
 *   `migrations/`: SQL migration files.
 *   `recordings/`: Local storage for audio files.
 *   `docs/`: Project documentation and plans.
