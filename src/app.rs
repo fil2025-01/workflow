@@ -95,111 +95,108 @@ fn HomePage() -> impl IntoView {
   let (selected_date, set_selected_date) = create_signal(None::<String>);
 
   let recordings_resource = create_resource(
-      move || selected_date.get(),
-      |date| async move { get_recordings(date).await }
+    move || selected_date.get(),
+    |date| async move { get_recordings(date).await }
   );
 
   let groups_resource = create_resource(
-      || (),
-      |_| async move { get_groups().await }
+    || (),
+    |_| async move { get_groups().await }
   );
 
   let recordings = Signal::derive(move || {
-      recordings_resource.get().and_then(|res| res.ok()).unwrap_or_default()
+    recordings_resource.get().and_then(|res| res.ok()).unwrap_or_default()
   });
   let groups = Signal::derive(move || {
-      groups_resource.get().and_then(|res| res.ok()).unwrap_or_default()
+    groups_resource.get().and_then(|res| res.ok()).unwrap_or_default()
   });
 
-    let update_group_action = create_server_action::<UpdateRecordingGroup>();
-    let delete_rec_action = create_server_action::<DeleteRecording>();
+  let update_group_action = create_server_action::<UpdateRecordingGroup>();
+  let delete_rec_action = create_server_action::<DeleteRecording>();
 
-    // Refresh resources when actions complete
-    create_effect(move |_| {
-        if update_group_action.version().get() > 0 || delete_rec_action.version().get() > 0 {
-            recordings_resource.refetch();
-        }
-    });
-
-    // Polling for pending transcriptions
-    create_effect(move |_| {
-        let has_pending = recordings.get().iter().any(|r| r.status == "PENDING");
-        if has_pending {
-            let _ = set_timeout_with_handle(move || {
-                recordings_resource.refetch();
-            }, std::time::Duration::from_secs(3));
-        }
-    });
-
-    view! {
-        <Show
-            when=move || view_history.get()
-            fallback=move || view! {
-                <div id="recordingSection" class="container">
-                    <div class="flex flex-col flex-wrap content-center justify-center">
-                        <h1>"Audio Workflow"</h1>
-                        <div class="mt-5 flex gap-2 w-full" style="max-width: 300px;">
-                            <RecordButton on_success=Callback::new(move |_| recordings_resource.refetch())/>
-                            <button
-                                id="viewHistoryBtn"
-                                class="btn btn-lg flex-1"
-                                on:click=move |_| set_view_history.set(true)
-                            >
-                                "Recordings"
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            }
-        >
-            <div id="historySection">
-                <h2 class="text-lg mb-2">"Recording History"</h2>
-                <div class="flex items-center justify-between mb-2 pb-2 border-b bg-cadetblue p-2">
-                    <div class="flex items-center">
-                        <button
-                            id="backBtn"
-                            class="btn mr-2 rounded-md"
-                            on:click=move |_| set_view_history.set(false)
-                        >
-                            "Back"
-                        </button>
-                        <span id="statsLabel" class="text-sm text-gray-600">
-                            "Total Recordings: " {move || recordings.get().len()}
-                        </span>
-                    </div>
-                    <div class="flex items-center">
-                        <button id="recordBtnContinuation" class="btn mr-2 rounded-md">"Continue Recording"</button>
-                    </div>
-                    <DateFilter on_change=move |date| {
-                        set_selected_date.set(Some(date));
-                    }/>
-                </div>
-                <div id="recordingsList">
-                    <Transition fallback=move || view! { <p>"Loading recordings..."</p> }>
-                        <RecordingList
-                            recordings=recordings.into()
-                            groups=groups.into()
-                            on_group_change=Callback::new(move |(rec_id, group_id)| {
-                                update_group_action.dispatch(UpdateRecordingGroup { id: rec_id, group_id });
-                            })
-                            on_delete=Callback::new(move |id| {
-                                #[cfg(not(feature = "ssr"))]
-                                {
-                                    if web_sys::window().unwrap().confirm_with_message("Delete this recording?").unwrap() {
-                                        delete_rec_action.dispatch(DeleteRecording { id });
-                                    }
-                                }
-                                #[cfg(feature = "ssr")]
-                                {
-                                    let _ = id;
-                                }
-                            })
-                        />
-                    </Transition>
-                </div>
-            </div>
-        </Show>
+  // Refresh resources when actions complete
+  create_effect(move |_| {
+    if update_group_action.version().get() > 0 || delete_rec_action.version().get() > 0 {
+      recordings_resource.refetch();
     }
+  });
+
+  // Polling for pending transcriptions
+  create_effect(move |_| {
+    let has_pending = recordings.get().iter().any(|r| r.status == "PENDING");
+    if has_pending {
+      let _ = set_timeout_with_handle(move || {
+        recordings_resource.refetch();
+      }, std::time::Duration::from_secs(3));
+    }
+  });
+
+  view! {
+    <Show
+      when=move || view_history.get()
+      fallback=move || view! {
+        <div id="recordingSection" class="container">
+          <div class="flex flex-col flex-wrap content-center justify-center">
+            <h1>"Audio Workflow"</h1>
+            <div class="mt-5 flex gap-2 w-full" style="max-width: 300px;">
+              <RecordButton on_success=Callback::new(move |_| recordings_resource.refetch())/>
+              <button
+                id="viewHistoryBtn"
+                class="btn btn-lg flex-1"
+                on:click=move |_| set_view_history.set(true)>
+                "Recordings"
+              </button>
+            </div>
+          </div>
+        </div>
+      }>
+      <div id="historySection">
+        <h2 class="text-lg mb-2">"Recording History"</h2>
+        <div class="flex items-center justify-between mb-2 pb-2 border-b bg-cadetblue p-2">
+          <div class="flex items-center">
+            <button
+              id="backBtn"
+              class="btn mr-2 rounded-md"
+              on:click=move |_| set_view_history.set(false)>
+              "Back"
+            </button>
+            <span id="statsLabel" class="text-sm text-gray-600">
+              "Total Recordings: " {move || recordings.get().len()}
+            </span>
+          </div>
+          <div class="flex items-center">
+            <button id="recordBtnContinuation" class="btn mr-2 rounded-md">"Continue Recording"</button>
+          </div>
+          <DateFilter on_change=move |date| {
+            set_selected_date.set(Some(date));
+          }/>
+        </div>
+        <div id="recordingsList">
+          <Transition fallback=move || view! { <p>"Loading recordings..."</p> }>
+            <RecordingList
+              recordings=recordings.into()
+              groups=groups.into()
+              on_group_change=Callback::new(move |(rec_id, group_id)| {
+                update_group_action.dispatch(UpdateRecordingGroup { id: rec_id, group_id });
+              })
+              on_delete=Callback::new(move |id| {
+                #[cfg(not(feature = "ssr"))]
+                {
+                  if web_sys::window().unwrap().confirm_with_message("Delete this recording?").unwrap() {
+                    delete_rec_action.dispatch(DeleteRecording { id });
+                  }
+                }
+                #[cfg(feature = "ssr")]
+                {
+                  let _ = id;
+                }
+              })
+            />
+          </Transition>
+        </div>
+      </div>
+    </Show>
+  }
 }
 
 #[component]
@@ -213,6 +210,6 @@ fn NotFound() -> impl IntoView {
     }
 
     view! {
-        <h1>"Not Found"</h1>
+      <h1>"Not Found"</h1>
     }
 }
