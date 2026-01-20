@@ -14,8 +14,6 @@ We will integrate Leptos directly into the existing Axum backend. Leptos is desi
     *   `src/components/`: Reusable UI components.
     *   `src/pages/`: Page-level components.
 
-[See how it was implemented in](./page18.md)
-
 ## 2. Dependencies & Configuration
 
 ### Cargo.toml Updates
