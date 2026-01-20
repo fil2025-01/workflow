@@ -10,6 +10,7 @@ use std::path::{Path as FilePath};
 use std::time::{SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Local, Datelike, NaiveDate};
 use sqlx::PgPool;
+use uuid::Uuid;
 use crate::models::dtos::{DateFilter, RecordingFile, DeleteRequest, TaskGroup, UpdateRecordingRequest};
 use crate::service::transcription::transcribe_audio;
 
@@ -49,7 +50,7 @@ pub async fn get_groups(State(pool): State<PgPool>) -> impl IntoResponse {
 // Handler to update a recording (e.g. set group)
 pub async fn update_recording(
     State(pool): State<PgPool>,
-    Path(id): Path<sqlx::types::uuid::Uuid>,
+    Path(id): Path<Uuid>,
     Json(payload): Json<UpdateRecordingRequest>
 ) -> impl IntoResponse {
     let res = sqlx::query!(
@@ -210,7 +211,11 @@ pub async fn upload_handler(
 }
 
 // Helper function to transcribe and update the database
-async fn transcribe_and_update(pool: PgPool, id: sqlx::types::uuid::Uuid, path: std::path::PathBuf) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn transcribe_and_update(
+    pool: PgPool,
+    id: Uuid,
+    path: std::path::PathBuf
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let transcription_text = transcribe_audio(path.clone()).await?;
     let json_value: serde_json::Value = serde_json::from_str(&transcription_text)?;
 

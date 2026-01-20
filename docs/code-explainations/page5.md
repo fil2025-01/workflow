@@ -1,3 +1,5 @@
+[Prev](./page5.md) | [Next](./page6.md)
+
 # Explanation of `upload_handler` in `src/api/handlers.rs`
 
 This document provides a detailed, line-by-line explanation of the `upload_handler` function, which is responsible for handling audio file uploads, saving them to disk, and initiating the transcription process.
@@ -137,24 +139,24 @@ pub async fn upload_handler(
 ### Spawning Transcription
 
 ```rust
-                        match res {
-                            Ok(record) => {
-                                // Spawn transcription task
-                                let pool_clone = pool.clone();
-                                let full_filepath_clone = full_filepath.clone();
-                                let record_id = record.id;
+    match res {
+        Ok(record) => {
+            // Spawn transcription task
+            let pool_clone = pool.clone();
+            let full_filepath_clone = full_filepath.clone();
+            let record_id = record.id;
 
-                                tokio::spawn(async move {
-                                    if let Err(e) = transcribe_and_update(pool_clone, record_id, full_filepath_clone).await {
-                                        eprintln!("Transcription failed: {}", e);
-                                    }
-                                });
-                            },
-                            Err(e) => {
-                                eprintln!("Failed to insert into DB: {}", e);
-                                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-                            }
-                        }
+            tokio::spawn(async move {
+                if let Err(e) = transcribe_and_update(pool_clone, record_id, full_filepath_clone).await {
+                    eprintln!("Transcription failed: {}", e);
+                }
+            });
+        },
+        Err(e) => {
+            eprintln!("Failed to insert into DB: {}", e);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    }
 ```
 
 -   Matches on the result of the database insertion.

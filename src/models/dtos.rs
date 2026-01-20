@@ -1,21 +1,24 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-#[derive(Serialize, sqlx::FromRow)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct TaskGroup {
-    pub id: sqlx::types::uuid::Uuid,
+    pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub ordering: i32,
 }
 
-#[derive(Serialize, sqlx::FromRow)]
+#[derive(Serialize)]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct RecordingFile {
-    pub id: sqlx::types::uuid::Uuid,
+    pub id: Uuid,
     pub path: String,
     pub name: String,
     pub status: String,
     pub transcription: Option<serde_json::Value>,
-    pub group_id: Option<sqlx::types::uuid::Uuid>,
+    pub group_id: Option<Uuid>,
 }
 
 #[derive(Deserialize)]
@@ -30,7 +33,7 @@ pub struct DateFilter {
 
 #[derive(Deserialize)]
 pub struct UpdateRecordingRequest {
-    pub group_id: Option<sqlx::types::uuid::Uuid>,
+    pub group_id: Option<Uuid>,
 }
 
 #[derive(Serialize)]
