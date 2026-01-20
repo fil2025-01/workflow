@@ -31,14 +31,7 @@ pub async fn script_handler() -> impl IntoResponse {
 
 // Handler to get task groups
 pub async fn get_groups(State(pool): State<PgPool>) -> impl IntoResponse {
-    let groups = sqlx::query_as!(
-        TaskGroup,
-        "SELECT id, name, description, ordering FROM task_groups ORDER BY ordering ASC"
-    )
-    .fetch_all(&pool)
-    .await;
-
-    match groups {
+    match get_groups_inner(pool).await {
         Ok(groups) => AxumJson(groups).into_response(),
         Err(e) => {
             eprintln!("Database error: {}", e);
@@ -47,21 +40,22 @@ pub async fn get_groups(State(pool): State<PgPool>) -> impl IntoResponse {
     }
 }
 
+pub async fn get_groups_inner(pool: PgPool) -> Result<Vec<TaskGroup>, sqlx::Error> {
+    sqlx::query_as!(
+        TaskGroup,
+        "SELECT id, name, description, ordering FROM task_groups ORDER BY ordering ASC"
+    )
+    .fetch_all(&pool)
+    .await
+}
+
 // Handler to update a recording (e.g. set group)
 pub async fn update_recording(
     State(pool): State<PgPool>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateRecordingRequest>
 ) -> impl IntoResponse {
-    let res = sqlx::query!(
-        "UPDATE recordings SET group_id = $1 WHERE id = $2",
-        payload.group_id,
-        id
-    )
-    .execute(&pool)
-    .await;
-
-    match res {
+    match update_recording_inner(pool, id, payload.group_id).await {
         Ok(_) => StatusCode::OK.into_response(),
         Err(e) => {
             eprintln!("Database error on update: {}", e);
@@ -70,20 +64,39 @@ pub async fn update_recording(
     }
 }
 
+pub async fn update_recording_inner(pool: PgPool, id: Uuid, group_id: Option<Uuid>) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE recordings SET group_id = $1 WHERE id = $2",
+        group_id,
+        id
+    )
+    .execute(&pool)
+    .await?;
+    Ok(())
+}
+
 // Handler to list recordings (optionally filtered by date)
 pub async fn list_recordings(
     State(pool): State<PgPool>,
     Query(filter): Query<DateFilter>
 ) -> impl IntoResponse {
-    let date_str = filter.date.unwrap_or_else(|| Local::now().format("%Y-%m-%d").to_string());
+    match list_recordings_inner(pool, filter.date).await {
+        Ok(files) => AxumJson(files).into_response(),
+        Err(e) => {
+            eprintln!("Database error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+}
+
+pub async fn list_recordings_inner(pool: PgPool, date: Option<String>) -> Result<Vec<RecordingFile>, sqlx::Error> {
+    let date_str = date.unwrap_or_else(|| Local::now().format("%Y-%m-%d").to_string());
 
     // Parse date_str to NaiveDate for SQL query
-    let query_date = match NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
-        Ok(d) => d,
-        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
-    };
+    let query_date = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d")
+        .map_err(|_| sqlx::Error::RowNotFound)?; // Generic error for bad date
 
-    let recordings = sqlx::query_as!(
+    sqlx::query_as!(
         RecordingFile,
         r#"
         SELECT
@@ -100,15 +113,7 @@ pub async fn list_recordings(
         query_date
     )
     .fetch_all(&pool)
-    .await;
-
-    match recordings {
-        Ok(files) => AxumJson(files).into_response(),
-        Err(e) => {
-            eprintln!("Database error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    }
+    .await
 }
 
 // Handler for uploading audio
@@ -266,4 +271,27 @@ pub async fn delete_recording(
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
+}
+
+pub async fn delete_recording_by_id_inner(pool: PgPool, id: Uuid) -> Result<(), sqlx::Error> {
+    // Fetch path first to delete from disk
+    let record = sqlx::query!(
+        "SELECT file_path FROM recordings WHERE id = $1",
+        id
+    )
+    .fetch_optional(&pool)
+    .await?;
+
+    if let Some(record) = record {
+        // Delete from DB
+        sqlx::query!("DELETE FROM recordings WHERE id = $1", id)
+            .execute(&pool)
+            .await?;
+
+        // Delete from disk
+        let file_path = FilePath::new("recordings").join(record.file_path);
+        let _ = fs::remove_file(&file_path);
+    }
+
+    Ok(())
 }

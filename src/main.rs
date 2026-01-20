@@ -54,11 +54,10 @@ async fn main() {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
 
-    let state = AppState {
-        db: pool,
-        leptos_options: leptos_options.clone(),
-    };
-
+        let state = AppState { 
+            db: pool.clone(),
+            leptos_options: leptos_options.clone(),
+        };
     let app = Router::new()
         // API Routes
         .route("/upload", post(upload_handler))
@@ -75,7 +74,7 @@ async fn main() {
         .route("/script.js", get(script_handler))
 
         // Leptos
-        .leptos_routes(&state, routes, App)
+        .leptos_routes_with_context(&state, routes, move || provide_context(pool.clone()), App)
         .fallback(file_and_error_handler)
         .with_state(state);
 
@@ -84,14 +83,18 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn file_and_error_handler(uri: axum::http::Uri, State(options): State<LeptosOptions>, req: axum::http::Request<axum::body::Body>) -> axum::response::Response {
+async fn file_and_error_handler(uri: axum::http::Uri, State(options): State<LeptosOptions>, State(pool): State<PgPool>, req: axum::http::Request<axum::body::Body>) -> axum::response::Response {
     let root = options.site_root.clone();
     let res = get_static_file(uri.clone(), &root).await.unwrap();
 
     if res.status() == axum::http::StatusCode::OK {
         res.into_response()
     } else {
-        let handler = leptos_axum::render_app_to_stream(options.to_owned(), App);
+        let handler = leptos_axum::render_app_to_stream_with_context(
+            options.clone(),
+            move || provide_context(pool.clone()),
+            App
+        );
         handler(req).await.into_response()
     }
 }
