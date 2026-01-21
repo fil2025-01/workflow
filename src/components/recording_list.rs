@@ -26,7 +26,7 @@ pub fn RecordingList(
       <tbody>
         <For
           each=move || recordings.get()
-          key=|rec| rec.id
+          key=|rec| (rec.id, rec.status.clone())
           children={
             let groups = groups.clone();
             move |rec| {
