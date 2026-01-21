@@ -1,6 +1,7 @@
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+#[cfg(not(feature = "ssr"))]
 use wasm_bindgen::prelude::*;
 use crate::components::*;
 use crate::models::dtos::{RecordingFile, TaskGroup};
@@ -125,9 +126,9 @@ fn HomePage() -> impl IntoView {
     // Polling for pending transcriptions
     create_effect(move |prev_handle: Option<Option<i32>>| {
       // Clear previous interval if valid
-      if let Some(handle) = prev_handle.flatten() {
+      if let Some(_handle) = prev_handle.flatten() {
           #[cfg(not(feature = "ssr"))]
-          web_sys::window().unwrap().clear_interval_with_handle(handle);
+          web_sys::window().unwrap().clear_interval_with_handle(_handle);
       }
   
       let has_pending = recordings.get().iter().any(|r| r.status == "PENDING");
@@ -192,6 +193,7 @@ fn HomePage() -> impl IntoView {
             <RecordButton
               class="btn mr-2 rounded-md"
               label="Continue Recording"
+              date=selected_date
               on_success=Callback::new(move |_| recordings_resource.refetch())
             />
           </div>

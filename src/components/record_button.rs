@@ -8,10 +8,11 @@ use std::cell::RefCell;
 pub fn RecordButton(
     #[prop(optional)] on_success: Option<Callback<()>>,
     #[prop(optional, into)] class: Option<String>,
-    #[prop(optional, into)] label: Option<String>
+    #[prop(optional, into)] label: Option<String>,
+    #[prop(optional, into)] date: Option<MaybeSignal<Option<String>>>
 ) -> impl IntoView {
     let (is_recording, set_is_recording) = create_signal(false);
-
+    
     // Store references to recorder and chunks in Rc<RefCell> to share across closures
     let media_recorder = Rc::new(RefCell::new(None::<MediaRecorder>));
     let audio_chunks = Rc::new(RefCell::new(Vec::<Blob>::new()));
@@ -19,30 +20,32 @@ pub fn RecordButton(
     let on_click = {
         let media_recorder = media_recorder.clone();
         let audio_chunks = audio_chunks.clone();
-
+        let date_signal = date;
+        
         move |_| {
             if !is_recording.get() {
                 // START RECORDING
                 let media_recorder = media_recorder.clone();
                 let audio_chunks = audio_chunks.clone();
-
+                let date_val = date_signal.as_ref().and_then(|d| d.get());
+                
                 spawn_local(async move {
                     let window = web_sys::window().unwrap();
                     let navigator = window.navigator();
                     let media_devices = navigator.media_devices().unwrap();
-
+                    
                     let constraints = web_sys::MediaStreamConstraints::new();
                     constraints.set_audio(&JsValue::from_bool(true));
-
+                    
                     let stream_promise = media_devices.get_user_media_with_constraints(&constraints).unwrap();
                     let stream_js = wasm_bindgen_futures::JsFuture::from(stream_promise).await.unwrap();
                     let stream: MediaStream = stream_js.unchecked_into();
-
+                    
                     let options = MediaRecorderOptions::new();
                     options.set_mime_type("audio/webm");
-
+                    
                     let recorder = MediaRecorder::new_with_media_stream_and_media_recorder_options(&stream, &options).unwrap();
-
+                    
                     // ondataavailable
                     let audio_chunks_inner = audio_chunks.clone();
                     let on_data_callback = Closure::wrap(Box::new(move |ev: BlobEvent| {
@@ -50,9 +53,10 @@ pub fn RecordButton(
                     }) as Box<dyn FnMut(BlobEvent)>);
                     recorder.set_ondataavailable(Some(on_data_callback.as_ref().unchecked_ref()));
                     on_data_callback.forget(); // Keep closure alive
-
+                    
                     // onstop
                     let audio_chunks_stop = audio_chunks.clone();
+                    let date_val_stop = date_val.clone();
                     let on_stop_callback = Closure::wrap(Box::new(move |_| {
                         let chunks = audio_chunks_stop.borrow().clone();
                         let array = js_sys::Array::new();
@@ -65,19 +69,26 @@ pub fn RecordButton(
                             &array,
                             &property_bag
                         ).unwrap();
-
+                        
                         // Upload
+                        let date_val_upload = date_val_stop.clone();
                         spawn_local(async move {
                             let form_data = FormData::new().unwrap();
                             form_data.append_with_blob_and_filename("file", &blob, "recording.webm").unwrap();
-
+                            
                             let window = web_sys::window().unwrap();
                             let init = web_sys::RequestInit::new();
                             init.set_method("POST");
                             init.set_body(&form_data);
+                            
+                            let url = if let Some(d) = &date_val_upload {
+                                format!("/upload?date={}", d)
+                            } else {
+                                "/upload".to_string()
+                            };
 
                             let _ = wasm_bindgen_futures::JsFuture::from(
-                                window.fetch_with_str_and_init("/upload", &init)
+                                window.fetch_with_str_and_init(&url, &init)
                             ).await;
 
                             if let Some(on_success) = on_success {
