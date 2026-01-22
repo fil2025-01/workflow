@@ -21,7 +21,7 @@ pub async fn transcribe_audio(filepath: PathBuf) -> Result<String, Box<dyn std::
     let request_body = GenerateContentRequest {
         contents: vec![Content {
             parts: vec![
-                Part::Text { text: "Transcribe the following audio. Then, provide a short, clean, and descriptive title (max 6 words) summarizing the content. Return ONLY a raw JSON object (no markdown formatting) with the following structure:\n{\n  \"title\": \"Your Title\",\n  \"transcript\": \"Full Transcription\"\n}".to_string() },
+                Part::Text { text: "Transcribe the following audio. Then, provide a short, clean, and descriptive title summarizing the content. Return ONLY a raw JSON object (no markdown formatting) with the following structure:\n{\n  \"title\": \"Your Title\",\n  \"transcript\": \"Full Transcription\"\n}".to_string() },
                 Part::InlineData {
                     inline_data: InlineData {
                         mime_type: "audio/webm".to_string(),
@@ -63,7 +63,7 @@ pub async fn transcribe_audio(filepath: PathBuf) -> Result<String, Box<dyn std::
                     } else {
                         clean_text
                     };
-                    
+
                     let clean_text = clean_text.trim_end_matches("```").trim();
                     return Ok(clean_text.to_string());
                 }
