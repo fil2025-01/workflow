@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 #[server(GetRecordings, "/api")]
 pub async fn get_recordings(date: Option<String>) -> Result<Vec<RecordingFile>, ServerFnError> {
-    use crate::api::handlers::list_recordings_inner;
+    use crate::api::recordings::list_recordings_inner;
     let pool = use_context::<sqlx::PgPool>()
         .ok_or_else(|| ServerFnError::new("Database pool not found"))?;
 
@@ -19,7 +19,7 @@ pub async fn get_recordings(date: Option<String>) -> Result<Vec<RecordingFile>, 
 
 #[server(GetGroups, "/api")]
 pub async fn get_groups() -> Result<Vec<TaskGroup>, ServerFnError> {
-    use crate::api::handlers::get_groups_inner;
+    use crate::api::groups::get_groups_inner;
     let pool = use_context::<sqlx::PgPool>()
         .ok_or_else(|| ServerFnError::new("Database pool not found"))?;
 
@@ -29,7 +29,7 @@ pub async fn get_groups() -> Result<Vec<TaskGroup>, ServerFnError> {
 
 #[server(UpdateRecordingGroup, "/api")]
 pub async fn update_recording_group(id: Uuid, group_id: Option<Uuid>) -> Result<(), ServerFnError> {
-    use crate::api::handlers::update_recording_inner;
+    use crate::api::recordings::update_recording_inner;
     let pool = use_context::<sqlx::PgPool>()
         .ok_or_else(|| ServerFnError::new("Database pool not found"))?;
 
@@ -39,7 +39,7 @@ pub async fn update_recording_group(id: Uuid, group_id: Option<Uuid>) -> Result<
 
 #[server(DeleteRecording, "/api")]
 pub async fn delete_recording(id: Uuid) -> Result<(), ServerFnError> {
-    use crate::api::handlers::delete_recording_by_id_inner;
+    use crate::api::recordings::delete_recording_by_id_inner;
     let pool = use_context::<sqlx::PgPool>()
         .ok_or_else(|| ServerFnError::new("Database pool not found"))?;
 

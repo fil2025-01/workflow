@@ -1,6 +1,6 @@
 use axum::{
     extract::{Query, Json, State, Multipart, Path},
-    response::{Html, IntoResponse, Json as AxumJson},
+    response::{IntoResponse, Json as AxumJson},
     http::StatusCode,
 };
 use std::fs;
@@ -11,43 +11,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Local, Datelike, NaiveDate};
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::models::dtos::{DateFilter, RecordingFile, DeleteRequest, TaskGroup, UpdateRecordingRequest};
+use crate::models::dtos::{DateFilter, RecordingFile, DeleteRequest, UpdateRecordingRequest};
 use crate::service::transcription::transcribe_audio;
-
-// Handler that returns HTML
-pub async fn handler() -> Html<&'static str> {
-    Html(include_str!("../../static/index.html"))
-}
-
-// Handler that returns CSS
-pub async fn style_handler() -> impl IntoResponse {
-    ([("content-type", "text/css")], include_str!("../../static/style.css"))
-}
-
-// Handler that returns JS
-pub async fn script_handler() -> impl IntoResponse {
-    ([("content-type", "text/javascript")], include_str!("../../static/js/script.js"))
-}
-
-// Handler to get task groups
-pub async fn get_groups(State(pool): State<PgPool>) -> impl IntoResponse {
-    match get_groups_inner(pool).await {
-        Ok(groups) => AxumJson(groups).into_response(),
-        Err(e) => {
-            eprintln!("Database error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    }
-}
-
-pub async fn get_groups_inner(pool: PgPool) -> Result<Vec<TaskGroup>, sqlx::Error> {
-    sqlx::query_as!(
-        TaskGroup,
-        "SELECT id, name, description, ordering FROM task_groups ORDER BY ordering ASC"
-    )
-    .fetch_all(&pool)
-    .await
-}
 
 // Handler to update a recording (e.g. set group)
 pub async fn update_recording(

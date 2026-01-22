@@ -5,10 +5,10 @@ use uuid::Uuid;
 
 #[component]
 pub fn RecordingList(
-    recordings: MaybeSignal<Vec<RecordingFile>>,
-    groups: MaybeSignal<Vec<TaskGroup>>,
-    on_group_change: Callback<(Uuid, Option<Uuid>)>,
-    on_delete: Callback<Uuid>
+  recordings: MaybeSignal<Vec<RecordingFile>>,
+  groups: MaybeSignal<Vec<TaskGroup>>,
+  on_group_change: Callback<(Uuid, Option<Uuid>)>,
+  on_delete: Callback<Uuid>
 ) -> impl IntoView {
   view! {
     <table class="data-table">

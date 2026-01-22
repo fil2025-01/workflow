@@ -11,15 +11,19 @@ use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use workflow::app::*; // Import App from the library crate
 
-use workflow::api::handlers::{
-    handler,
+use workflow::api::recordings::{
     upload_handler,
     list_recordings,
-    style_handler,
-    script_handler,
     delete_recording,
-    get_groups,
     update_recording
+};
+
+use workflow::api::groups::get_groups;
+
+use workflow::api::static_handlers::{
+    handler,
+    style_handler,
+    script_handler
 };
 
 #[derive(Clone)]
@@ -53,12 +57,12 @@ async fn main() {
     let leptos_options = conf.leptos_options;
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
-    
+
     let site_root = leptos_options.site_root.clone();
     let pkg_dir = leptos_options.site_pkg_dir.clone();
     let pkg_path = format!("{}/{}", site_root, pkg_dir);
 
-    let state = AppState { 
+    let state = AppState {
         db: pool.clone(),
         leptos_options: leptos_options.clone(),
     };
@@ -72,7 +76,7 @@ async fn main() {
 
         // Static file serving for recordings
         .nest_service("/files", ServeDir::new("recordings"))
-        
+
         // Serve Leptos pkg assets explicitly
         .nest_service(&format!("/{}", pkg_dir), ServeDir::new(pkg_path))
 
