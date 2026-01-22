@@ -25,11 +25,11 @@ pub fn RecordingList(
       </thead>
       <tbody>
         <For
-          each=move || recordings.get()
-          key=|rec| (rec.id, rec.status.clone())
+          each=move || recordings.get().into_iter().enumerate()
+          key=|(idx, rec)| (rec.id, rec.status.clone(), *idx)
           children={
             let groups = groups.clone();
-            move |rec| {
+            move |(index, rec)| {
               let id = rec.id;
               let rec_path = rec.path.clone();
               let rec_name = rec.name.clone();
@@ -74,7 +74,7 @@ pub fn RecordingList(
 
               view! {
                 <tr>
-                  <td class="col-no">"?"</td> // Index needs careful handling in For
+                  <td class="col-no">{index + 1}</td>
                   <td class="col-title" title=full_text>{title}</td>
                   <td class="col-status">{rec_status}</td>
                   <td class="col-group">
