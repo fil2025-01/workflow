@@ -17,11 +17,14 @@ pub async fn transcribe_audio(filepath: PathBuf) -> Result<String, Box<dyn std::
     // Encode to base64
     let base64_audio = general_purpose::STANDARD.encode(&buffer);
 
+    // Load prompt from file
+    let prompt_text = include_str!("prompt.md").to_string();
+
     // Construct request
     let request_body = GenerateContentRequest {
         contents: vec![Content {
             parts: vec![
-                Part::Text { text: "Transcribe the following audio. Then, provide a short, clean, and descriptive title summarizing the content. Return ONLY a raw JSON object (no markdown formatting) with the following structure:\n{\n  \"title\": \"Your Title\",\n  \"transcript\": \"Full Transcription\"\n}".to_string() },
+                Part::Text { text: prompt_text },
                 Part::InlineData {
                     inline_data: InlineData {
                         mime_type: "audio/webm".to_string(),
