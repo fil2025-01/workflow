@@ -6,3 +6,4 @@
 1. [List Recordings Logic](./page4.md)
 1. [Explaining `upload_handler` Logic](./page5.md)
 1. [Explaining `list_recordings` Logic](./page6.md)
+1. [Explanation of `RecordingList` Component](./page7.md)

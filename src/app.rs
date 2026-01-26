@@ -123,38 +123,39 @@ fn HomePage() -> impl IntoView {
     }
   });
 
-    // Polling for pending transcriptions
-    create_effect(move |prev_handle: Option<Option<i32>>| {
-      // Clear previous interval if valid
-      if let Some(_handle) = prev_handle.flatten() {
-          #[cfg(not(feature = "ssr"))]
-          web_sys::window().unwrap().clear_interval_with_handle(_handle);
-      }
-  
-      let has_pending = recordings.get().iter().any(|r| r.status == "PENDING");
-      
-      if has_pending {
-          #[cfg(not(feature = "ssr"))]
-          {
-              let callback = Closure::wrap(Box::new(move || {
-                  recordings_resource.refetch();
-              }) as Box<dyn FnMut()>);
-              
-              let handle = web_sys::window().unwrap()
-                  .set_interval_with_callback_and_timeout_and_arguments_0(
-                      callback.as_ref().unchecked_ref(),
-                      3000
-                  );
-              
-              callback.forget(); // Leak closure so it persists for interval
-              
-              if let Ok(h) = handle {
-                  return Some(h);
-              }
-          }
-      }
-      None
-    });
+  // Polling for pending transcriptions
+  create_effect(move |prev_handle: Option<Option<i32>>| {
+    // Clear previous interval if valid
+    if let Some(_handle) = prev_handle.flatten() {
+        #[cfg(not(feature = "ssr"))]
+        web_sys::window().unwrap().clear_interval_with_handle(_handle);
+    }
+
+    let has_pending = recordings.get().iter().any(|r| r.status == "PENDING");
+
+    if has_pending {
+        #[cfg(not(feature = "ssr"))]
+        {
+            let callback = Closure::wrap(Box::new(move || {
+                recordings_resource.refetch();
+            }) as Box<dyn FnMut()>);
+
+            let handle = web_sys::window().unwrap()
+                .set_interval_with_callback_and_timeout_and_arguments_0(
+                    callback.as_ref().unchecked_ref(),
+                    3000
+                );
+
+            callback.forget(); // Leak closure so it persists for interval
+
+            if let Ok(h) = handle {
+                return Some(h);
+            }
+        }
+    }
+    None
+  });
+
   view! {
     <Show
       when=move || view_history.get()

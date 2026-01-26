@@ -4,3 +4,4 @@ server.log
 node_modules/
 .env
 recordings/
+start-server
