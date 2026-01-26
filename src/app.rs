@@ -37,6 +37,16 @@ pub async fn update_recording_group(id: Uuid, group_id: Option<Uuid>) -> Result<
         .map_err(|e| ServerFnError::new(e.to_string()))
 }
 
+#[server(UpdateRecordingTitle, "/api")]
+pub async fn update_recording_title(id: Uuid, title: String) -> Result<(), ServerFnError> {
+    use crate::api::recordings::update_recording_title_inner;
+    let pool = use_context::<sqlx::PgPool>()
+        .ok_or_else(|| ServerFnError::new("Database pool not found"))?;
+
+    update_recording_title_inner(pool, id, title).await
+        .map_err(|e| ServerFnError::new(e.to_string()))
+}
+
 #[server(DeleteRecording, "/api")]
 pub async fn delete_recording(id: Uuid) -> Result<(), ServerFnError> {
     use crate::api::recordings::delete_recording_by_id_inner;
@@ -114,11 +124,15 @@ fn HomePage() -> impl IntoView {
   });
 
   let update_group_action = create_server_action::<UpdateRecordingGroup>();
+  let update_title_action = create_server_action::<UpdateRecordingTitle>();
   let delete_rec_action = create_server_action::<DeleteRecording>();
 
   // Refresh resources when actions complete
   create_effect(move |_| {
-    if update_group_action.version().get() > 0 || delete_rec_action.version().get() > 0 {
+    if update_group_action.version().get() > 0 
+      || delete_rec_action.version().get() > 0 
+      || update_title_action.version().get() > 0 
+    {
       recordings_resource.refetch();
     }
   });
@@ -209,6 +223,9 @@ fn HomePage() -> impl IntoView {
               groups=groups.into()
               on_group_change=Callback::new(move |(rec_id, group_id)| {
                 update_group_action.dispatch(UpdateRecordingGroup { id: rec_id, group_id });
+              })
+              on_title_change=Callback::new(move |(rec_id, title)| {
+                update_title_action.dispatch(UpdateRecordingTitle { id: rec_id, title });
               })
               on_delete=Callback::new(move |id| {
                 #[cfg(not(feature = "ssr"))]

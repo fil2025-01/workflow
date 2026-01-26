@@ -40,6 +40,25 @@ pub async fn update_recording_inner(pool: PgPool, id: Uuid, group_id: Option<Uui
     Ok(())
 }
 
+pub async fn update_recording_title_inner(pool: PgPool, id: Uuid, title: String) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        UPDATE recordings
+        SET transcription_text = jsonb_set(
+            COALESCE(transcription_text, '{}'::jsonb),
+            '{title}',
+            to_jsonb($1::text)
+        )
+        WHERE id = $2
+        "#,
+        title,
+        id
+    )
+    .execute(&pool)
+    .await?;
+    Ok(())
+}
+
 // Handler to list recordings (optionally filtered by date)
 pub async fn list_recordings(
     State(pool): State<PgPool>,
