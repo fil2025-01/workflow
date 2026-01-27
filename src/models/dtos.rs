@@ -19,6 +19,7 @@ pub struct RecordingFile {
     pub status: String,
     pub transcription: Option<serde_json::Value>,
     pub group_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
 }
 
 #[derive(Deserialize)]

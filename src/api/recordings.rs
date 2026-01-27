@@ -89,7 +89,8 @@ pub async fn list_recordings_inner(pool: PgPool, date: Option<String>) -> Result
             filename as "name!",
             transcription_status as "status!",
             transcription_text as "transcription",
-            group_id
+            group_id,
+            parent_id
         FROM recordings
         WHERE date(created_at) = $1
         ORDER BY created_at DESC
@@ -208,17 +209,61 @@ async fn transcribe_and_update(
     let transcription_text = transcribe_audio(path.clone()).await?;
     let json_value: serde_json::Value = serde_json::from_str(&transcription_text)?;
 
-    sqlx::query!(
-        r#"
-        UPDATE recordings
-        SET transcription_text = $1, transcription_status = 'COMPLETED'
-        WHERE id = $2
-        "#,
-        json_value,
-        id
-    )
-    .execute(&pool)
-    .await?;
+    if let Some(tasks) = json_value.as_array() {
+        for (idx, task) in tasks.iter().enumerate() {
+            if idx == 0 {
+                // Update the original recording with the first task
+                sqlx::query!(
+                    r#"
+                    UPDATE recordings
+                    SET transcription_text = $1, transcription_status = 'COMPLETED'
+                    WHERE id = $2
+                    "#,
+                    task,
+                    id
+                )
+                .execute(&pool)
+                .await?;
+            } else {
+                // Fetch basic info from the parent to duplicate it for children
+                let parent = sqlx::query!(
+                    "SELECT filename, file_path, group_id, created_at FROM recordings WHERE id = $1",
+                    id
+                )
+                .fetch_one(&pool)
+                .await?;
+
+                // Insert additional tasks as new rows linked to the parent
+                sqlx::query!(
+                    r#"
+                    INSERT INTO recordings (filename, file_path, transcription_text, transcription_status, group_id, created_at, parent_id)
+                    VALUES ($1, $2, $3, 'COMPLETED', $4, $5, $6)
+                    "#,
+                    parent.filename,
+                    parent.file_path,
+                    task,
+                    parent.group_id,
+                    parent.created_at,
+                    id
+                )
+                .execute(&pool)
+                .await?;
+            }
+        }
+    } else {
+        // Fallback if Gemini didn't return an array (though it should based on prompt)
+        sqlx::query!(
+            r#"
+            UPDATE recordings
+            SET transcription_text = $1, transcription_status = 'COMPLETED'
+            WHERE id = $2
+            "#,
+            json_value,
+            id
+        )
+        .execute(&pool)
+        .await?;
+    }
 
     Ok(())
 }

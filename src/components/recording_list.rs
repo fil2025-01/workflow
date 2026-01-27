@@ -107,18 +107,26 @@ fn RecordingRow(
   };
 
   view! {
-    <tr>
+    <tr class=move || if rec.parent_id.is_some() { "child-row" } else { "parent-row" }>
       <td class="col-no">{index + 1}</td>
       <td class="col-title" title=full_text>
         <Show
           when=move || is_editing.get()
           fallback={
             let title = title.clone();
+            let has_parent = rec.parent_id.is_some();
             move || {
               let title_for_click = title.clone();
               view! {
                 <div class="flex items-center justify-between group">
-                  <span>{title.clone()}</span>
+                  <span class="flex items-center">
+                    {if has_parent {
+                      view! { <span class="mr-2 text-gray-400">"↳"</span> }.into_view()
+                    } else {
+                      view! { }.into_view()
+                    }}
+                    {title.clone()}
+                  </span>
                   <button
                     class="btn-icon opacity-0 group-hover:opacity-100 transition-opacity ml-2"
                     on:click=move |_| {

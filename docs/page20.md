@@ -1,4 +1,4 @@
-[Prev](./page19.md)
+[Prev](./page19.md) | [Next](./page21.md)
 
 # The Static vs. Dynamic Paradox
 
@@ -61,4 +61,4 @@ Naturally, we "express and recall in more detail." This is critical for **Phase 
 ### Summary
 Recording is the bridge between the **Chaos of Reality** and the **Structure of the Plan**. It allows you to be human (messy, detailed, verbal) while the app ensures the output is structured (organized, tracked, analyzed).
 
-[Prev](./page19.md)
+[Prev](./page19.md) | [Next](./page21.md)
