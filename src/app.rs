@@ -129,9 +129,9 @@ fn HomePage() -> impl IntoView {
 
   // Refresh resources when actions complete
   create_effect(move |_| {
-    if update_group_action.version().get() > 0 
-      || delete_rec_action.version().get() > 0 
-      || update_title_action.version().get() > 0 
+    if update_group_action.version().get() > 0
+      || delete_rec_action.version().get() > 0
+      || update_title_action.version().get() > 0
     {
       recordings_resource.refetch();
     }
@@ -199,7 +199,6 @@ fn HomePage() -> impl IntoView {
               on:click=move |_| set_view_history.set(false)>
               "Back"
             </button>
-            <a href="/legacy" class="btn mr-2 rounded-md">"Legacy UI"</a>
             <span id="statsLabel" class="text-sm text-gray-600">
               "Total Recordings: " {move || recordings.get().len()}
             </span>

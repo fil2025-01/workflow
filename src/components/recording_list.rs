@@ -125,8 +125,7 @@ fn RecordingRow(
                       set_edit_title.set(title_for_click.clone());
                       set_is_editing.set(true);
                     }
-                    title="Edit Title"
-                  >
+                    title="Edit Title">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -135,8 +134,7 @@ fn RecordingRow(
                 </div>
               }
             }
-          }
-        >
+          }>
           <div class="flex items-center gap-1">
             <input
               type="text"
@@ -158,15 +156,13 @@ fn RecordingRow(
                 on_title_change.call((id, edit_title.get()));
                 set_is_editing.set(false);
               }
-              title="Save"
-            >
+              title="Save">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </button>
             <button
               class="btn-icon text-red-600"
               on:click=move |_| set_is_editing.set(false)
-              title="Cancel"
-            >
+              title="Cancel">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
