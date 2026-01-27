@@ -20,12 +20,6 @@ use workflow::api::recordings::{
 
 use workflow::api::groups::get_groups;
 
-use workflow::api::static_handlers::{
-    handler,
-    style_handler,
-    script_handler
-};
-
 #[derive(Clone)]
 pub struct AppState {
     pub db: PgPool,
@@ -79,12 +73,6 @@ async fn main() {
 
         // Serve Leptos pkg assets explicitly
         .nest_service(&format!("/{}", pkg_dir), ServeDir::new(pkg_path))
-
-        // Legacy UI
-        .route("/legacy", get(handler))
-        .route("/legacy/", get(handler))
-        .route("/style.css", get(style_handler))
-        .route("/script.js", get(script_handler))
 
         // Leptos
         .leptos_routes_with_context(&state, routes, move || provide_context(pool.clone()), App)
