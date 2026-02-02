@@ -119,6 +119,7 @@ fn HomePage() -> impl IntoView {
   let recordings = Signal::derive(move || {
     recordings_resource.get().and_then(|res| res.ok()).unwrap_or_default()
   });
+
   let groups = Signal::derive(move || {
     groups_resource.get().and_then(|res| res.ok()).unwrap_or_default()
   });
@@ -150,21 +151,21 @@ fn HomePage() -> impl IntoView {
     if has_pending {
         #[cfg(not(feature = "ssr"))]
         {
-            let callback = Closure::wrap(Box::new(move || {
-                recordings_resource.refetch();
-            }) as Box<dyn FnMut()>);
+          let callback = Closure::wrap(Box::new(move || {
+              recordings_resource.refetch();
+          }) as Box<dyn FnMut()>);
 
-            let handle = web_sys::window().unwrap()
-                .set_interval_with_callback_and_timeout_and_arguments_0(
-                    callback.as_ref().unchecked_ref(),
-                    3000
-                );
+          let handle = web_sys::window().unwrap()
+              .set_interval_with_callback_and_timeout_and_arguments_0(
+                  callback.as_ref().unchecked_ref(),
+                  3000
+              );
 
-            callback.forget(); // Leak closure so it persists for interval
+          callback.forget(); // Leak closure so it persists for interval
 
-            if let Ok(h) = handle {
-                return Some(h);
-            }
+          if let Ok(h) = handle {
+              return Some(h);
+          }
         }
     }
     None
@@ -174,11 +175,12 @@ fn HomePage() -> impl IntoView {
     <Show
       when=move || view_history.get()
       fallback=move || view! {
-        <div id="recordingSection" class="container">
-          <div class="flex flex-col flex-wrap content-center justify-center">
+        <div id="recordingSection" class="container h-full">
+          <div class="flex flex-col items-center justify-center h-full">
             <h1>"Audio Workflow"</h1>
-            <div class="mt-5 flex gap-2 w-full" style="max-width: 300px;">
-              <RecordButton on_success=Callback::new(move |_| recordings_resource.refetch())/>
+            <div class="mt-5 flex gap-2 w-full items-center" style="max-width: 180px">
+              <RecordButton
+                on_success=Callback::new(move |_| recordings_resource.refetch())/>
               <button
                 id="viewHistoryBtn"
                 class="btn btn-lg flex-1"
@@ -191,29 +193,29 @@ fn HomePage() -> impl IntoView {
       }>
       <div id="historySection">
         <h2 class="text-lg mb-2">"Recording History"</h2>
-        <div class="flex items-center justify-between mb-2 pb-2 border-b bg-cadetblue p-2">
+        <div class="toolbar">
           <div class="flex items-center">
             <button
               id="backBtn"
-              class="btn mr-2 rounded-md"
+              class="btn mr-2"
               on:click=move |_| set_view_history.set(false)>
               "Back"
             </button>
-            <span id="statsLabel" class="text-sm text-gray-600">
+            <span id="statsLabel" class="text-sm text-gray-400 ml-4">
               "Total Recordings: " {move || recordings.get().len()}
             </span>
           </div>
-          <div class="flex items-center">
+          <div class="flex items-center gap-2">
             <RecordButton
-              class="btn mr-2 rounded-md"
+              class="btn"
               label="Continue Recording"
               date=selected_date
               on_success=Callback::new(move |_| recordings_resource.refetch())
             />
+            <DateFilter on_change=move |date| {
+              set_selected_date.set(Some(date));
+            }/>
           </div>
-          <DateFilter on_change=move |date| {
-            set_selected_date.set(Some(date));
-          }/>
         </div>
         <div id="recordingsList">
           <Transition fallback=move || view! { <p>"Loading recordings..."</p> }>

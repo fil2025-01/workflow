@@ -1,4 +1,4 @@
-[Prev](./page20.md)
+[Prev](./page20.md) | [Next](./page22.md)
 
 # Plan: Detailed Task Extraction vs. Summarization
 
@@ -70,4 +70,4 @@ We need a way to link these exploded items back to the original audio file.
 ### Step 4: Frontend Handling
 *   Ensure the `RecordingList` correctly displays these new items (it should happen automatically if they are just rows in the DB).
 
-[Prev](./page20.md)
+[Prev](./page20.md) | [Next](./page22.md)

@@ -73,32 +73,35 @@ pub async fn list_recordings(
     }
 }
 
-pub async fn list_recordings_inner(pool: PgPool, date: Option<String>) -> Result<Vec<RecordingFile>, sqlx::Error> {
-    let date_str = date.unwrap_or_else(|| Local::now().format("%Y-%m-%d").to_string());
+pub async fn list_recordings_inner(
+  pool: PgPool,
+  date: Option<String>
+) -> Result<Vec<RecordingFile>, sqlx::Error> {
+  let date_str = date.unwrap_or_else(|| Local::now().format("%Y-%m-%d").to_string());
 
-    // Parse date_str to NaiveDate for SQL query
-    let query_date = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d")
-        .map_err(|_| sqlx::Error::RowNotFound)?; // Generic error for bad date
+  // Parse date_str to NaiveDate for SQL query
+  let query_date = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d")
+    .map_err(|_| sqlx::Error::RowNotFound)?; // Generic error for bad date
 
-    sqlx::query_as!(
-        RecordingFile,
-        r#"
-        SELECT
-            id,
-            '/files/' || file_path as "path!",
-            filename as "name!",
-            transcription_status as "status!",
-            transcription_text as "transcription",
-            group_id,
-            parent_id
-        FROM recordings
-        WHERE date(created_at) = $1
-        ORDER BY created_at DESC
-        "#,
-        query_date
-    )
-    .fetch_all(&pool)
-    .await
+  sqlx::query_as!(
+      RecordingFile,
+      r#"
+      SELECT
+          id,
+          '/files/' || file_path as "path!",
+          filename as "name!",
+          transcription_status as "status!",
+          transcription_text as "transcription",
+          group_id,
+          parent_id
+      FROM recordings
+      WHERE date(created_at) = $1
+      ORDER BY created_at DESC
+      "#,
+      query_date
+  )
+  .fetch_all(&pool)
+  .await
 }
 
 // Handler for uploading audio
