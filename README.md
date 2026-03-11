@@ -5,6 +5,7 @@ A personal productivity tool for recording, transcribing, and organizing daily a
 ## 🚀 Features
 
 *   **Audio Recording**: Record voice notes directly from your browser.
+*   **Workflow CLI**: Record and upload audio directly from your terminal using `workflow --record`.
 *   **Automatic Transcription**: Seamlessly transcribes audio in the background (using Gemini API).
 *   **Task Grouping**: Organize recordings into "Day Parts":
     *   **Part 1**: Delegation ("Can I delegate this?")
@@ -79,7 +80,24 @@ This compiles both the frontend (WASM) and backend, and watches for changes.
     *   **Leptos UI**: `http://localhost:4000`
     *   **Legacy UI**: `http://localhost:4000/legacy` (if preserved)
 
-### Running Only Backend (Legacy Mode)
+### CLI Usage
+
+The app includes a command-line interface for terminal-based recording.
+
+1.  **Install the CLI globally**:
+    ```bash
+    cargo install --path .
+    ```
+
+2.  **Record from terminal**:
+    Ensure the server is running (`cargo leptos watch`), then run:
+    ```bash
+    workflow --record
+    ```
+    *   **Start**: Recording starts immediately.
+    *   **Stop**: Press `Ctrl+C` to stop and automatically upload to the server.
+
+### Running Only Backend (Legacy/API Mode)
 If you only want to run the backend and legacy static site without compiling WASM:
 
 ```bash
@@ -90,7 +108,8 @@ cargo run --features ssr
 
 *   `src/`: Source code.
     *   `app.rs`: Leptos frontend application.
-    *   `main.rs`: Axum server entry point.
+    *   `main.rs`: Axum server entry point (`workflow-server`).
+    *   `bin/workflow.rs`: CLI implementation (`workflow`).
     *   `lib.rs`: Shared code and hydration entry point.
     *   `api/`: HTTP handlers.
     *   `models/`: Database structs and DTOs.
