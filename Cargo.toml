@@ -6,11 +6,20 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[[bin]]
+name = "workflow-server"
+path = "src/main.rs"
+required-features = ["ssr"]
+
+[[bin]]
+name = "workflow"
+path = "src/bin/workflow.rs"
+
 [dependencies]
 # Server dependencies (Optional, enabled by ssr feature)
 axum = { version = "0.7", features = ["multipart", "macros"], optional = true }
-tokio = { version = "1.0", features = ["full"], optional = true }
-reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.11", features = ["json", "multipart"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 base64 = "0.21"
@@ -21,6 +30,9 @@ walkdir = "2.5"
 chrono = { version = "0.4", features = ["wasmbind"] }
 uuid = { version = "1.0", features = ["serde", "v4", "js"] }
 sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono"], optional = true }
+clap = { version = "4.4", features = ["derive"] }
+cpal = "0.15"
+hound = "3.5"
 
 # Leptos Dependencies
 leptos = { version = "0.6" }
@@ -75,7 +87,7 @@ assets-dir = "static"
 # The IP and port (ex: 127.0.0.1:3000) where the server serves the content. Use it in your server setup.
 site-addr = "127.0.0.1:4000"
 # The port to use for automatic reload monitoring
-reload-port = 3001
+reload-port = 3002
 # [Optional] Command to use when running end2end tests. It will run in the background.
 end2end-cmd = "cargo test --test end2end"
 #  The browserlist query used for optimizing the CSS.
@@ -104,4 +116,4 @@ lib-default-features = false
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
-ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "leptos_axum", "axum", "tokio", "sqlx", "tower-http", "tower/util"]
+ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "leptos_axum", "axum", "sqlx", "tower-http", "tower/util"]

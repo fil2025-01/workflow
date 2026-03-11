@@ -1,4 +1,4 @@
-[Prev](./page22.md) | [Next](./page23.md)
+[Prev](./page21.md) | [Next](./page23.md)
 
 # Plan: UI Overhaul - "Dark Mode & Modern Polish"
 
@@ -62,4 +62,4 @@ The current HTML `<table>` looks dated. We will redesign it:
 1.  Update `static/style.css` with the new Dark Mode variables.
 2.  Refactor `RecordingList` to use a cleaner DOM structure (if needed) or style the existing table to look like a modern list.
 
-[Prev](./page22.md) | [Next](./page23.md)
+[Prev](./page21.md) | [Next](./page23.md)

@@ -40,48 +40,84 @@ impl FromRef<AppState> for LeptosOptions {
 
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv().ok();
+  dotenv::dotenv().ok();
 
-    // Database Connection
-    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPool::connect(&db_url).await.expect("Failed to connect to Postgres");
+  // Database Connection
+  let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+  let pool = PgPool::connect(&db_url).await.expect("Failed to connect to Postgres");
 
-    // Leptos Config
-    let conf = get_configuration(None).await.unwrap();
-    let leptos_options = conf.leptos_options;
-    let addr = leptos_options.site_addr;
-    let routes = generate_route_list(App);
+  // Leptos Config
+  let conf = get_configuration(None).await.unwrap();
+  println!("Leptos config: {:?}", conf);
+  let leptos_options = conf.leptos_options;
+  println!("Leptos options: {:?}", leptos_options);
+  let mut addr = leptos_options.site_addr;
 
-    let site_root = leptos_options.site_root.clone();
-    let pkg_dir = leptos_options.site_pkg_dir.clone();
-    let pkg_path = format!("{}/{}", site_root, pkg_dir);
+  // To serve over the network, bind to 0.0.0.0 if currently set to localhost
+  if addr.ip().is_loopback() {
+    addr.set_ip(std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0)));
+  }
 
-    let state = AppState {
-        db: pool.clone(),
-        leptos_options: leptos_options.clone(),
+  let routes = generate_route_list(App);
+
+  let site_root = leptos_options.site_root.clone();
+  let pkg_dir = leptos_options.site_pkg_dir.clone();
+  let pkg_path = format!("{}/{}", site_root, pkg_dir);
+  println!("pkg_path: {}", pkg_path);
+
+  let state = AppState {
+    db: pool.clone(),
+    leptos_options: leptos_options.clone(),
+  };
+
+  let app = Router::new()
+    // API Routes
+    .route("/upload", post(upload_handler))
+    .route("/recordings", get(list_recordings).delete(delete_recording))
+    .route("/recordings/:id", patch(update_recording))
+    .route("/groups", get(get_groups))
+
+    // Static file serving for recordings
+    .nest_service("/files", ServeDir::new("recordings"))
+
+    // Serve Leptos pkg assets explicitly
+    .nest_service(&format!("/{}", pkg_dir), ServeDir::new(pkg_path))
+
+    // Leptos
+    .leptos_routes_with_context(&state, routes, move || provide_context(pool.clone()), App)
+    .fallback(file_and_error_handler)
+    .with_state(state);
+
+  println!("listening on http://{}", addr);
+  let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+  axum::serve(listener, app)
+    .with_graceful_shutdown(shutdown_signal())
+    .await
+    .unwrap();
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
     };
 
-    let app = Router::new()
-        // API Routes
-        .route("/upload", post(upload_handler))
-        .route("/recordings", get(list_recordings).delete(delete_recording))
-        .route("/recordings/:id", patch(update_recording))
-        .route("/groups", get(get_groups))
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
 
-        // Static file serving for recordings
-        .nest_service("/files", ServeDir::new("recordings"))
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
 
-        // Serve Leptos pkg assets explicitly
-        .nest_service(&format!("/{}", pkg_dir), ServeDir::new(pkg_path))
-
-        // Leptos
-        .leptos_routes_with_context(&state, routes, move || provide_context(pool.clone()), App)
-        .fallback(file_and_error_handler)
-        .with_state(state);
-
-    println!("listening on http://{}", addr);
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
 }
 
 async fn file_and_error_handler(uri: axum::http::Uri, State(options): State<LeptosOptions>, State(pool): State<PgPool>, req: axum::http::Request<axum::body::Body>) -> axum::response::Response {

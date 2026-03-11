@@ -17,6 +17,13 @@ pub async fn transcribe_audio(filepath: PathBuf) -> Result<String, Box<dyn std::
     // Encode to base64
     let base64_audio = general_purpose::STANDARD.encode(&buffer);
 
+    // Determine mime type from extension
+    let mime_type = match filepath.extension().and_then(|s| s.to_str()) {
+        Some("wav") => "audio/wav",
+        Some("mp3") => "audio/mp3",
+        _ => "audio/webm",
+    };
+
     // Load prompt from file
     let prompt_text = include_str!("prompt.md").to_string();
 
@@ -27,7 +34,7 @@ pub async fn transcribe_audio(filepath: PathBuf) -> Result<String, Box<dyn std::
                 Part::Text { text: prompt_text },
                 Part::InlineData {
                     inline_data: InlineData {
-                        mime_type: "audio/webm".to_string(),
+                        mime_type: mime_type.to_string(),
                         data: base64_audio,
                     },
                 },

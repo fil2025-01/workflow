@@ -74,7 +74,8 @@ fn RecordingRow(
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
         .unwrap_or_else(|| rec.name.clone());
-      let transcript = json.get("transcript")
+      let transcript = json.get("improved_transcript")
+        .or_else(|| json.get("transcript"))
         .and_then(|v| v.as_str())
         .unwrap_or_default()
         .to_string();
@@ -107,24 +108,18 @@ fn RecordingRow(
   };
 
   view! {
-    <tr class=move || if rec.parent_id.is_some() { "child-row" } else { "parent-row" }>
+    <tr>
       <td class="col-no">{index + 1}</td>
       <td class="col-title" title=full_text>
         <Show
           when=move || is_editing.get()
           fallback={
             let title = title.clone();
-            let has_parent = rec.parent_id.is_some();
             move || {
               let title_for_click = title.clone();
               view! {
                 <div class="flex items-center justify-between group">
                   <span class="flex items-center">
-                    {if has_parent {
-                      view! { <span class="mr-2 text-gray-400">"↳"</span> }.into_view()
-                    } else {
-                      view! { }.into_view()
-                    }}
                     {title.clone()}
                   </span>
                   <button

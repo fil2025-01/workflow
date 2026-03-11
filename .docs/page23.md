@@ -63,4 +63,4 @@ Once the browser receives the HTML:
 2.  It loads the WASM bundle (via scripts injected by Leptos).
 3.  The `hydrate` function in `src/lib.rs` runs, taking over the static HTML and turning it into an interactive Single Page Application (SPA).
 
-Prev | Next
+[Prev](./page22.md) | [Next](./page24.md)

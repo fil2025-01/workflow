@@ -204,32 +204,6 @@ input[type="text"], input[type="date"], select {
     outline: none;
 }
 
-/* Child Rows (Exploded Tasks) */
-.child-row td.col-title {
-    position: relative;
-    padding-left: 36px;
-    color: #cbd5e1; /* Slightly muted title for children */
-}
-
-.child-row td.col-title::before {
-    content: '';
-    position: absolute;
-    left: 18px;
-    top: -10px;
-    bottom: 50%;
-    width: 1px;
-    background-color: #334155;
-}
-
-.child-row td.col-title::after {
-    content: '↳';
-    position: absolute;
-    left: 18px;
-    top: 6px;
-    color: #475569;
-    font-size: 14px;
-}
-
 /* Audio Player Compact */
 audio {
     height: 24px; /* Much smaller height */

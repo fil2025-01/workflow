@@ -1,4 +1,4 @@
-[Prev](./page2.md) | [Next](./page4.md)
+[Prev](./page1.md) | [Next](./page4.md)
 
 # TypeScript Migration
 

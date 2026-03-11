@@ -84,21 +84,21 @@ pub async fn list_recordings_inner(
     .map_err(|_| sqlx::Error::RowNotFound)?; // Generic error for bad date
 
   sqlx::query_as!(
-      RecordingFile,
-      r#"
-      SELECT
-          id,
-          '/files/' || file_path as "path!",
-          filename as "name!",
-          transcription_status as "status!",
-          transcription_text as "transcription",
-          group_id,
-          parent_id
-      FROM recordings
-      WHERE date(created_at) = $1
-      ORDER BY created_at DESC
-      "#,
-      query_date
+    RecordingFile,
+    r#"
+    SELECT
+      id,
+      '/files/' || file_path as "path!",
+      filename as "name!",
+      transcription_status as "status!",
+      transcription_text as "transcription",
+      group_id,
+      parent_id
+    FROM recordings
+    WHERE date(created_at) = $1
+    ORDER BY created_at DESC, id DESC
+    "#,
+    query_date
   )
   .fetch_all(&pool)
   .await
@@ -106,99 +106,108 @@ pub async fn list_recordings_inner(
 
 // Handler for uploading audio
 pub async fn upload_handler(
-    State(pool): State<PgPool>,
-    Query(filter): Query<DateFilter>,
-    mut multipart: Multipart
+  State(pool): State<PgPool>,
+  Query(filter): Query<DateFilter>,
+  mut multipart: Multipart
 ) -> impl IntoResponse {
-    let now: DateTime<Local> = Local::now();
+  let now: DateTime<Local> = Local::now();
 
-    // Determine the upload directory based on the optional date query param
-    let (year, month, day) = if let Some(date_str) = filter.date.clone() {
-        if let Ok(date) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
-            (date.year(), date.month(), date.day())
-        } else {
-            (now.year(), now.month(), now.day())
-        }
+  // Determine the upload directory based on the optional date query param
+  let (year, month, day) = if let Some(date_str) = filter.date.clone() {
+    if let Ok(date) = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+      (date.year(), date.month(), date.day())
     } else {
-        (now.year(), now.month(), now.day())
-    };
+      (now.year(), now.month(), now.day())
+    }
+  } else {
+    (now.year(), now.month(), now.day())
+  };
 
-    let relative_dir = format!("{}/{}/{}", year, month, day);
-    let upload_dir = format!("recordings/{}", relative_dir);
+  let relative_dir = format!("{}/{}/{}", year, month, day);
+  let upload_dir = format!("recordings/{}", relative_dir);
 
     if let Err(e) = fs::create_dir_all(&upload_dir) {
-        eprintln!("Failed to create upload directory: {}", e);
-        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+      eprintln!("Failed to create upload directory: {}", e);
+      return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     }
 
     while let Ok(Some(field)) = multipart.next_field().await {
-        let name = field.name().unwrap_or("unknown").to_string();
+      let name = field.name().unwrap_or("unknown").to_string();
 
-        if name == "file" {
-            let file_name = field.file_name().unwrap_or("").to_string();
-            if let Ok(data) = field.bytes().await {
-                let timestamp = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
+      if name == "file" {
+        let file_name = field.file_name().unwrap_or("").to_string();
+        if let Ok(data) = field.bytes().await {
+          let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
 
-                // If uploaded filename starts with "test_", preserve that prefix for easier cleanup
-                let prefix = if file_name.starts_with("test_") { "test_" } else { "" };
-                let filename = format!("{}recording_{}.webm", prefix, timestamp);
+          // Determine extension
+          let extension = if file_name.ends_with(".wav") {
+            "wav"
+          } else if file_name.ends_with(".mp3") {
+            "mp3"
+          } else {
+            "webm"
+          };
 
-                let filepath_in_db = format!("{}/{}", relative_dir, filename);
-                let full_filepath = FilePath::new(&upload_dir).join(&filename);
+          // If uploaded filename starts with "test_", preserve that prefix for easier cleanup
+          let prefix = if file_name.starts_with("test_") { "test_" } else { "" };
+          let filename = format!("{}recording_{}.{}", prefix, timestamp, extension);
 
-                if let Ok(mut file) = File::create(&full_filepath) {
-                    if file.write_all(&data).is_ok() {
-                        println!("Saved file: {}", full_filepath.display());
+          let filepath_in_db = format!("{}/{}", relative_dir, filename);
+          let full_filepath = FilePath::new(&upload_dir).join(&filename);
 
-                        // Insert into database
-                        let res = sqlx::query!(
-                            r#"
-                            INSERT INTO recordings (filename, file_path, created_at)
-                            VALUES ($1, $2, $3)
-                            RETURNING id
-                            "#,
-                            filename,
-                            filepath_in_db,
-                            if let Some(ref ds) = filter.date {
-                                NaiveDate::parse_from_str(ds, "%Y-%m-%d").ok().and_then(|d| d.and_hms_opt(12, 0, 0)).map(|dt| DateTime::<Local>::from_naive_utc_and_offset(dt.and_utc().naive_utc(), *Local::now().offset()))
-                            } else {
-                                Some(Local::now())
-                            }
-                        )
-                        .fetch_one(&pool)
-                        .await;
+          if let Ok(mut file) = File::create(&full_filepath) {
+            if file.write_all(&data).is_ok() {
+              println!("Saved file: {}", full_filepath.display());
 
-                        match res {
-                            Ok(record) => {
-                                // Spawn transcription task
-                                let pool_clone = pool.clone();
-                                let full_filepath_clone = full_filepath.clone();
-                                let record_id = record.id;
-
-                                tokio::spawn(async move {
-                                    if let Err(e) = transcribe_and_update(pool_clone, record_id, full_filepath_clone).await {
-                                        eprintln!("Transcription failed: {}", e);
-                                    }
-                                });
-                            },
-                            Err(e) => {
-                                eprintln!("Failed to insert into DB: {}", e);
-                                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-                            }
-                        }
-                    } else {
-                        eprintln!("Failed to write to file: {}", full_filepath.display());
-                        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-                    }
+              // Insert into database
+              let res = sqlx::query!(
+                r#"
+                INSERT INTO recordings (filename, file_path, created_at)
+                VALUES ($1, $2, $3)
+                RETURNING id
+                "#,
+                filename,
+                filepath_in_db,
+                if let Some(ref ds) = filter.date {
+                  NaiveDate::parse_from_str(ds, "%Y-%m-%d").ok().and_then(|d| d.and_hms_opt(12, 0, 0)).map(|dt| DateTime::<Local>::from_naive_utc_and_offset(dt.and_utc().naive_utc(), *Local::now().offset()))
                 } else {
-                    eprintln!("Failed to create file: {}", full_filepath.display());
-                    return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                  Some(Local::now())
                 }
+              )
+              .fetch_one(&pool)
+              .await;
+
+              match res {
+                Ok(record) => {
+                  // Spawn transcription task
+                  let pool_clone = pool.clone();
+                  let full_filepath_clone = full_filepath.clone();
+                  let record_id = record.id;
+
+                  tokio::spawn(async move {
+                    if let Err(e) = transcribe_and_update(pool_clone, record_id, full_filepath_clone).await {
+                      eprintln!("Transcription failed: {}", e);
+                    }
+                  });
+                },
+                Err(e) => {
+                  eprintln!("Failed to insert into DB: {}", e);
+                  return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                }
+              }
+            } else {
+              eprintln!("Failed to write to file: {}", full_filepath.display());
+              return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
+          } else {
+            eprintln!("Failed to create file: {}", full_filepath.display());
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+          }
         }
+      }
     }
     StatusCode::OK.into_response()
 }
@@ -212,60 +221,67 @@ async fn transcribe_and_update(
     let transcription_text = transcribe_audio(path.clone()).await?;
     let json_value: serde_json::Value = serde_json::from_str(&transcription_text)?;
 
-    if let Some(tasks) = json_value.as_array() {
-        for (idx, task) in tasks.iter().enumerate() {
-            if idx == 0 {
-                // Update the original recording with the first task
-                sqlx::query!(
-                    r#"
-                    UPDATE recordings
-                    SET transcription_text = $1, transcription_status = 'COMPLETED'
-                    WHERE id = $2
-                    "#,
-                    task,
-                    id
-                )
-                .execute(&pool)
-                .await?;
-            } else {
-                // Fetch basic info from the parent to duplicate it for children
-                let parent = sqlx::query!(
-                    "SELECT filename, file_path, group_id, created_at FROM recordings WHERE id = $1",
-                    id
-                )
-                .fetch_one(&pool)
-                .await?;
-
-                // Insert additional tasks as new rows linked to the parent
-                sqlx::query!(
-                    r#"
-                    INSERT INTO recordings (filename, file_path, transcription_text, transcription_status, group_id, created_at, parent_id)
-                    VALUES ($1, $2, $3, 'COMPLETED', $4, $5, $6)
-                    "#,
-                    parent.filename,
-                    parent.file_path,
-                    task,
-                    parent.group_id,
-                    parent.created_at,
-                    id
-                )
-                .execute(&pool)
-                .await?;
-            }
-        }
+    // Try to find the array of tasks. Gemini might return a raw array or { "tasks": [...] }
+    let tasks_opt = if json_value.is_array() {
+      json_value.as_array()
     } else {
-        // Fallback if Gemini didn't return an array (though it should based on prompt)
-        sqlx::query!(
+      json_value.get("tasks").and_then(|v| v.as_array())
+    };
+
+    if let Some(tasks) = tasks_opt {
+      // Fetch parent info once to duplicate for children
+      let parent = sqlx::query!(
+        "SELECT filename, file_path, group_id, created_at FROM recordings WHERE id = $1",
+        id
+      )
+      .fetch_one(&pool)
+      .await?;
+
+      for (idx, task) in tasks.iter().enumerate() {
+        if idx == 0 {
+          // Update the original recording with the first task
+          sqlx::query!(
             r#"
             UPDATE recordings
             SET transcription_text = $1, transcription_status = 'COMPLETED'
             WHERE id = $2
             "#,
-            json_value,
+            task,
             id
-        )
-        .execute(&pool)
-        .await?;
+          )
+          .execute(&pool)
+          .await?;
+        } else {
+          // Insert additional tasks as new rows linked to the parent
+          sqlx::query!(
+            r#"
+            INSERT INTO recordings (filename, file_path, transcription_text, transcription_status, group_id, created_at, parent_id)
+            VALUES ($1, $2, $3, 'COMPLETED', $4, $5, $6)
+            "#,
+            parent.filename,
+            parent.file_path,
+            task,
+            parent.group_id,
+            parent.created_at,
+            id
+          )
+          .execute(&pool)
+          .await?;
+        }
+      }
+    } else {
+      // Fallback if Gemini didn't return an array at all
+      sqlx::query!(
+        r#"
+        UPDATE recordings
+        SET transcription_text = $1, transcription_status = 'COMPLETED'
+        WHERE id = $2
+        "#,
+        json_value,
+        id
+      )
+      .execute(&pool)
+      .await?;
     }
 
     Ok(())
@@ -292,9 +308,20 @@ pub async fn delete_recording(
 
     match res {
         Ok(Some(_)) => {
-            // Delete from disk
-            let file_path = FilePath::new("recordings").join(relative_path);
-            let _ = fs::remove_file(&file_path);
+            // Check if any other records still use this file (unlikely after DELETE WHERE file_path)
+            // But good to keep consistency if we ever change to delete by ID
+            let other_records = sqlx::query!(
+                "SELECT id FROM recordings WHERE file_path = $1",
+                relative_path
+            )
+            .fetch_optional(&pool)
+            .await;
+
+            if let Ok(None) = other_records {
+                // Delete from disk
+                let file_path = FilePath::new("recordings").join(relative_path);
+                let _ = fs::remove_file(&file_path);
+            }
             StatusCode::OK
         },
         Ok(None) => StatusCode::NOT_FOUND,
@@ -306,7 +333,7 @@ pub async fn delete_recording(
 }
 
 pub async fn delete_recording_by_id_inner(pool: PgPool, id: Uuid) -> Result<(), sqlx::Error> {
-    // Fetch path first to delete from disk
+    // Fetch path first to check for siblings
     let record = sqlx::query!(
         "SELECT file_path FROM recordings WHERE id = $1",
         id
@@ -315,14 +342,26 @@ pub async fn delete_recording_by_id_inner(pool: PgPool, id: Uuid) -> Result<(), 
     .await?;
 
     if let Some(record) = record {
+        let file_path_str = record.file_path.clone();
+
         // Delete from DB
         sqlx::query!("DELETE FROM recordings WHERE id = $1", id)
             .execute(&pool)
             .await?;
 
-        // Delete from disk
-        let file_path = FilePath::new("recordings").join(record.file_path);
-        let _ = fs::remove_file(&file_path);
+        // Check if any other record still uses this file
+        let other_records = sqlx::query!(
+            "SELECT id FROM recordings WHERE file_path = $1",
+            file_path_str
+        )
+        .fetch_optional(&pool)
+        .await?;
+
+        if other_records.is_none() {
+            // Delete from disk
+            let file_path = FilePath::new("recordings").join(file_path_str);
+            let _ = fs::remove_file(&file_path).ok(); // ignore error if file already gone
+        }
     }
 
     Ok(())
